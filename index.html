@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent 架构选型分析报告</title>
+    <style>
+        :root {
+            --bg-color: #f6f8fa;
+            --text-color: #24292e;
+            --link-color: #0366d6;
+            --border-color: #dfe2e5;
+            --code-bg: rgba(27,31,35,0.05);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1012px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3, h4 {
+            margin-top: 24px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            line-height: 1.25;
+        }
+        h1 {
+            font-size: 2em;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.3em;
+        }
+        h2 {
+            font-size: 1.5em;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.3em;
+            margin-top: 1.5em;
+        }
+        h3 {
+            font-size: 1.25em;
+        }
+        p, blockquote, ul, ol, dl, table, pre {
+            margin-top: 0;
+            margin-bottom: 16px;
+        }
+        a {
+            color: var(--link-color);
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        ul, ol {
+            padding-left: 2em;
+        }
+        blockquote {
+            padding: 0 1em;
+            color: #6a737d;
+            border-left: 0.25em solid #dfe2e5;
+            background-color: #fcfcfc;
+            padding-top: 8px;
+            padding-bottom: 8px;
+        }
+        code {
+            padding: 0.2em 0.4em;
+            margin: 0;
+            font-size: 85%;
+            background-color: var(--code-bg);
+            border-radius: 3px;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            margin-bottom: 16px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        table th, table td {
+            padding: 8px 13px;
+            border: 1px solid var(--border-color);
+        }
+        table tr:nth-child(2n) {
+            background-color: #f6f8fa;
+        }
+        table th {
+            font-weight: 600;
+            background-color: #fff;
+        }
+        .meta-info {
+            background-color: #f1f8ff;
+            border-left: 4px solid #0366d6;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            border-radius: 0 4px 4px 0;
+        }
+        .meta-info p {
+            margin: 4px 0;
+        }
+        hr {
+            height: 0.25em;
+            padding: 0;
+            margin: 24px 0;
+            background-color: #e1e4e8;
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Agent 架构选型分析报告（知识库问答 + 工作流自动化）</h1>
+    
+    <div class="meta-info">
+        <p><strong>版本：</strong>v1.0</p>
+        <p><strong>日期：</strong>2026-03-02</p>
+        <p><strong>面向：</strong>组内技术选型评审</p>
+    </div>
+
+    <h2>一、执行摘要</h2>
+    <p>基于现有《智能体选型分析.txt》的全部核心结论，并补充主流开源框架（以安全合规、工程成熟度、社区活跃度为主）的对比后，结论如下：</p>
+    <ol>
+        <li>OpenClaw/Pi 在“开放式自主执行”上智能上限高，但默认范式是 <code>代码生成 + 执行（ACE）</code>，不适合作为企业无人值守生产底座。</li>
+        <li>对于我们当前主场景（知识库问答 + 工作流自动化），应优先选择 <code>Tool/Function Calling</code> 范式，而非 Bash/脚本直跑范式。</li>
+        <li>推荐主路径：
+            <ul>
+                <li>交付效率优先：<code>Dify + 受限工具网关（API/MCP）</code></li>
+                <li>复杂流程可控优先：<code>LangGraph + PydanticAI（结构化输出）</code></li>
+                <li>多智能体与 Skills 生态优先：<code>AgentScope（或 CoPaw 仅作参考实现）</code></li>
+            </ul>
+        </li>
+        <li>OpenClaw 仅建议用于 PoC/创新实验、个人助手类场景，不建议直接用于企业生产自动化主链路。</li>
+    </ol>
+
+    <h2>二、项目背景与约束</h2>
+    <ul>
+        <li><strong>业务目标：</strong>客户定制化 Agentic 项目，重点是知识库问答（RAG）与工作流自动化。</li>
+        <li><strong>非功能目标：</strong>安全合规、可审计、可持续迭代、可运维交付。</li>
+        <li><strong>当前已讨论安全措施：</strong>Docker 隔离、固定接口入参、输入过滤、内网数据源（向量库/MariaDB/MinIO）、禁外网搜索、Skills 调用。</li>
+    </ul>
+
+    <h2>三、OpenClaw分析</h2>
+    
+    <h3>3.1 OpenClaw + Pi 的价值与边界</h3>
+    <ol>
+        <li>OpenClaw 选择 Pi 的核心原因是“极简且稳定的执行内核”与“外围网关能力”互补。</li>
+        <li>Pi 的 Read/Write/Edit/Bash 极简工具集降低了内核复杂度，适合做长期运行底座。</li>
+        <li>OpenClaw 通过 SDK 嵌入 Pi，而不是外部进程调用，因此能够接管会话生命周期、权限边界和工具注入。</li>
+        <li>在能力定位上，Pi 更偏“自主写代码并执行”，OpenClaw 更偏“渠道接入、记忆、调度与生态封装”。</li>
+    </ol>
+
+    <h3>3.2 OpenClaw既有架构能力拆解</h3>
+    <ol>
+        <li>OpenClaw 在 Pi 之上补齐了企业常见“入口与运营层”能力，包括多渠道接入、持久记忆、定时/主动触发、技能生态和网关面板。</li>
+        <li>Pi 可直接通过 SDK 注入自定义工具，但 <code>SKILL.md</code> 这种可分发技能形态主要是 OpenClaw 上层生态能力。</li>
+        <li>从工程视角看，OpenClaw/Pi 的优势是开放式问题求解能力强，弱点是执行路径不可预测。</li>
+    </ol>
+
+    <h3>3.3 OpenClaw安全风险的根因判断</h3>
+    <ol>
+        <li>原始讨论反复收敛到同一结论：主要风险不是“代码质量差”，而是范式风险，即过度授权 + 任意代码执行 + 提示词注入攻击面。</li>
+        <li>仅做 Docker 挂载目录、固定入参接口、输入过滤，能降低风险但不足以形成企业级闭环。</li>
+        <li>关键缺口包括数据外发、内网横向访问、密钥滥用、资源耗尽以及“黑盒脚本执行难审计”。</li>
+        <li>即便只使用 Pi 而不用 OpenClaw，上述高自由执行风险也不会消失，本质是同一执行哲学导致。</li>
+    </ol>
+
+    <h3>3.4 OpenClaw HITL 与自动化体验的平衡</h3>
+    <ol>
+        <li>人类在环（HITL）确认机制对高危动作有效，但不能把“每一步都确认”当作默认方案。</li>
+        <li>在 RAG 与流程自动化场景中，逐步弹窗会显著破坏体验，并导致业务用户无法有效审阅代码级确认内容。</li>
+        <li>可落地的治理方式是“按工具分级”而非“按步骤一刀切”：低风险读操作自动放行，高风险写操作强制审批。</li>
+        <li>Claude Cowork / Claude Code 能进入企业场景，核心也在于隔离、结构化工具协议、策略治理和审计链路，而不是“模型天然更安全”。</li>
+    </ol>
+
+    <h3>3.5 代码执行型范式分析</h3>
+    <ol>
+        <li><strong>定义：</strong>Agent 在运行时自主生成并执行代码/命令（如 Bash、Python），通过“现场造工具”完成任务。</li>
+        <li><strong>优点（智能能力）：</strong>
+            <ul>
+                <li>泛化能力高，遇到未预置工具的任务也能尝试完成。</li>
+                <li>对开放问题有较强探索能力，适合快速 PoC 和个人效率场景。</li>
+                <li>在长尾任务上常表现出较强“即兴解决问题”能力。</li>
+            </ul>
+        </li>
+        <li><strong>缺点（安全合规）：</strong>
+            <ul>
+                <li>与提示词注入、过度权限叠加后，风险放大明显。</li>
+                <li>执行路径不可预测，事前审核和事后审计难度高。</li>
+                <li>无人值守场景下容易出现误操作、越权访问、资源耗尽和内部破坏风险。</li>
+            </ul>
+        </li>
+        <li><strong>工程代价：</strong>
+            <ul>
+                <li>需额外建设强隔离沙盒、最小权限、网络白名单、审批网关和审计回放。</li>
+                <li>即便防护完备，系统复杂度与运维成本通常仍高于工具调用型方案。</li>
+            </ul>
+        </li>
+        <li><strong>本项目结论：</strong>
+            <ul>
+                <li>代码执行型范式可作为“受控特例能力”，不应作为企业 RAG + 工作流主干。</li>
+                <li>主路径仍应以可控工具调用为核心，把高风险代码执行限制在强隔离、可审批的边界内。</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h2>四、可选技术方案</h2>
+    <blockquote>
+        <p>说明：以下为截至 2026-03-02 的公开仓库指标（Star/Release/活跃度）与企业适配判断。<br>
+        口径说明：<code>Skills</code> 列仅统计是否支持 <strong>Anthropic 通用 Skill 标准（SKILL.md）</strong>。若框架仅有自定义工具/插件机制，但未声明兼容该标准，一律标注为“不支持”。</p>
+    </blockquote>
+
+    <h3>4.1 候选框架总览</h3>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>框架</th>
+                    <th>典型定位</th>
+                    <th>安全合规友好度</th>
+                    <th>智能上限</th>
+                    <th>工程成熟度</th>
+                    <th>许可/开源属性</th>
+                    <th>Skills（Anthropic 标准）</th>
+                    <th>MCP 支持</th>
+                    <th>Agent Teams 支持</th>
+                    <th>代码执行型范式</th>
+                    <th>结论</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Dify</strong></td>
+                    <td>可视化 Agent + Workflow + RAG 平台</td>
+                    <td>高（工具调用、可视化治理）</td>
+                    <td>中高</td>
+                    <td>很高（131k⭐）</td>
+                    <td>开源</td>
+                    <td>不支持</td>
+                    <td>部分支持（需适配）</td>
+                    <td>中（可通过工作流编排模拟团队协作）</td>
+                    <td>否（默认工具调用型）</td>
+                    <td><strong>交付效率首选</strong></td>
+                </tr>
+                <tr>
+                    <td><strong>LangGraph</strong></td>
+                    <td>可控状态机式 Agent 编排</td>
+                    <td>高（可插 HITL、图状态可审计）</td>
+                    <td>高</td>
+                    <td>高（25.3k⭐）</td>
+                    <td>MIT</td>
+                    <td>不支持</td>
+                    <td>支持（可通过工具层接入）</td>
+                    <td>高（天然适合 Supervisor/Worker 团队图）</td>
+                    <td>可选（框架中立，取决于工具接入）</td>
+                    <td><strong>复杂流程首选</strong></td>
+                </tr>
+                <tr>
+                    <td><strong>PydanticAI</strong></td>
+                    <td>类型安全 Agent 框架</td>
+                    <td>高（Schema 约束强）</td>
+                    <td>中高</td>
+                    <td>高（15.2k⭐）</td>
+                    <td>MIT</td>
+                    <td>支持（通过 <code>pydantic-ai-skills</code>）</td>
+                    <td>支持（通过 Toolset/MCP 适配）</td>
+                    <td>中（可组合多 Agent，但需自建编排）</td>
+                    <td>否（默认结构化工具调用）</td>
+                    <td><strong>结构化数据场景首选</strong></td>
+                </tr>
+                <tr>
+                    <td><strong>AgentScope</strong></td>
+                    <td>多智能体开发框架</td>
+                    <td>中高（可禁高危工具）</td>
+                    <td>高</td>
+                    <td>高（16.7k⭐）</td>
+                    <td>Apache-2.0</td>
+                    <td>支持（原生）</td>
+                    <td>支持（原生）</td>
+                    <td>很高（MsgHub/Pipeline 原生多 Agent）</td>
+                    <td>可选（支持代码工具，可物理禁用）</td>
+                    <td><strong>多 Agent 复杂编排优选</strong></td>
+                </tr>
+                <tr>
+                    <td><strong>CoPaw</strong></td>
+                    <td>AgentScope 个人助理实现</td>
+                    <td>中（需剥离个人助手外壳）</td>
+                    <td>中高</td>
+                    <td>中（3.8k⭐）</td>
+                    <td>Apache-2.0</td>
+                    <td>支持（继承 AgentScope）</td>
+                    <td>支持（继承 AgentScope）</td>
+                    <td>高（继承 AgentScope 团队协同能力）</td>
+                    <td>可选（建议禁用底层代码执行工具）</td>
+                    <td><strong>可借鉴，不建议直接整套搬生产</strong></td>
+                </tr>
+                <tr>
+                    <td><strong>Semantic Kernel</strong></td>
+                    <td>企业级多语言编排（微软）</td>
+                    <td>高（插件边界清晰）</td>
+                    <td>中高</td>
+                    <td>高（27.3k⭐）</td>
+                    <td>MIT</td>
+                    <td>不支持</td>
+                    <td>支持</td>
+                    <td>中高（支持 Planner + 多角色协作设计）</td>
+                    <td>否（默认插件/函数调用）</td>
+                    <td><strong>微软技术栈强推荐</strong></td>
+                </tr>
+                <tr>
+                    <td><strong>Claude Agent SDK</strong></td>
+                    <td>Anthropic 官方代码代理 SDK</td>
+                    <td>中（默认含代码/命令执行能力，需强治理）</td>
+                    <td>很高</td>
+                    <td>高（Python 5.1k⭐ / TS 873⭐）</td>
+                    <td>MIT（仓库）+ 商业条款约束</td>
+                    <td>支持（原生）</td>
+                    <td>支持（原生）</td>
+                    <td>中（支持 task/sub-agent 委派）</td>
+                    <td>是（默认代码执行型能力）</td>
+                    <td><strong>适合有人值守/开发辅助；不建议直接做无人值守后台主底座</strong></td>
+                </tr>
+                <tr>
+                    <td><strong>LlamaIndex</strong></td>
+                    <td>RAG/文档 Agent 基础设施</td>
+                    <td>中高</td>
+                    <td>高（RAG强）</td>
+                    <td>很高（47.3k⭐）</td>
+                    <td>MIT</td>
+                    <td>不支持</td>
+                    <td>部分支持（需适配）</td>
+                    <td>中（偏 RAG 基建，团队编排需扩展）</td>
+                    <td>可选（可接入代码执行工具）</td>
+                    <td><strong>文档/检索能力补强推荐</strong></td>
+                </tr>
+                <tr>
+                    <td><strong>Haystack</strong></td>
+                    <td>企业 RAG/Agent 编排</td>
+                    <td>高（显式管道，控制强）</td>
+                    <td>中高</td>
+                    <td>高（24.4k⭐）</td>
+                    <td>Apache-2.0</td>
+                    <td>不支持</td>
+                    <td>部分支持（需适配）</td>
+                    <td>中（可做多节点协同，需流程设计）</td>
+                    <td>可选（可扩展代码执行节点）</td>
+                    <td><strong>RAG-heavy 项目推荐</strong></td>
+                </tr>
+                <tr>
+                    <td><strong>CrewAI</strong></td>
+                    <td>多角色协作 Agent</td>
+                    <td>中</td>
+                    <td>中高</td>
+                    <td>高（44.9k⭐）</td>
+                    <td>MIT</td>
+                    <td>不支持</td>
+                    <td>部分支持（需适配）</td>
+                    <td>很高（Agent Teams 一等公民）</td>
+                    <td>可选（常见实践会接代码工具）</td>
+                    <td><strong>内容协作型任务可选</strong></td>
+                </tr>
+                <tr>
+                    <td><strong>AutoGen</strong></td>
+                    <td>多 Agent 框架</td>
+                    <td>中</td>
+                    <td>中高</td>
+                    <td>高（55k⭐）</td>
+                    <td>MIT/CC-BY</td>
+                    <td>不支持</td>
+                    <td>支持（具备 MCP 接入能力）</td>
+                    <td>很高（群聊/团队协作范式成熟）</td>
+                    <td>可选（常见实践偏代码执行）</td>
+                    <td><strong>谨慎：官方建议新项目看 Microsoft Agent Framework</strong></td>
+                </tr>
+                <tr>
+                    <td><strong>OpenClaw</strong></td>
+                    <td>个人全能助手</td>
+                    <td>低~中（默认代码执行范式）</td>
+                    <td>很高</td>
+                    <td>很高（243k⭐）</td>
+                    <td>MIT</td>
+                    <td>不支持（未声明兼容 Anthropic 通用 Skill 标准）</td>
+                    <td>部分支持（桥接方式）</td>
+                    <td>中（可做子 Agent 路由，但治理复杂）</td>
+                    <td>是（默认依赖代码执行）</td>
+                    <td><strong>不建议做企业无人值守主底座</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h4>4.1.1 Agent Teams 选型补充建议</h4>
+    <ul>
+        <li>如果核心目标是“多角色协作产出”（如研究员/审核员/执行员分工），优先看 <code>AgentScope</code>、<code>CrewAI</code>、<code>LangGraph</code>。</li>
+        <li>如果核心目标是“RAG + 业务流程”而非复杂多 Agent 协商，优先 <code>Dify</code> 或 <code>LangGraph + PydanticAI</code>，把 Agent Teams 作为二期能力。</li>
+        <li>多 Agent 数量建议从 2-3 个角色起步，先做职责边界与失败回退，再扩展团队规模。</li>
+    </ul>
+
+    <h4>4.1.2 代码执行工具清单（重点框架）</h4>
+    <blockquote>
+        <p>说明：以下用于解释“支持代码执行型范式”的具体技术落点。支持不代表必须启用，生产环境建议默认禁用或强隔离。<br>
+        <strong>打开代码执行后，风险会显著上升；是否达到与 OpenClaw 相同风险水平，取决于权限边界、隔离强度与审批审计策略。</strong></p>
+    </blockquote>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>框架</th>
+                    <th>代码执行工具/组件（常见）</th>
+                    <th>说明</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>LangGraph</strong></td>
+                    <td><code>Python REPL</code>、<code>Shell (Bash)</code>、<code>ShellToolMiddleware</code>（<code>HostExecutionPolicy</code> / <code>DockerExecutionPolicy</code> / <code>CodexSandboxExecutionPolicy</code>）</td>
+                    <td>LangGraph 是编排层，代码执行能力通常来自 LangChain 工具与 middleware 配置。</td>
+                </tr>
+                <tr>
+                    <td><strong>AgentScope</strong></td>
+                    <td><code>execute_python_code</code>、<code>execute_shell_command</code></td>
+                    <td>来自 <code>agentscope.tool</code> API 的内置能力，也可通过自定义工具或 MCP 扩展。</td>
+                </tr>
+                <tr>
+                    <td><strong>CoPaw</strong></td>
+                    <td>（继承 AgentScope）<code>execute_python_code</code>、<code>execute_shell_command</code></td>
+                    <td>CoPaw 底层为 AgentScope，代码执行能力与禁用策略基本一致。</td>
+                </tr>
+                <tr>
+                    <td><strong>Claude Agent SDK</strong></td>
+                    <td><code>Bash</code> / 终端执行能力、文件编辑/写入工具链（由 SDK 运行时提供）</td>
+                    <td>官方代码代理 SDK，默认就面向“可执行任务”场景，需强治理。</td>
+                </tr>
+                <tr>
+                    <td><strong>LlamaIndex</strong></td>
+                    <td><code>CodeInterpreterToolSpec</code>、<code>PandasQueryEngine</code>（NL 转 Python）</td>
+                    <td>文档明确这类能力涉及执行风险，需沙盒化与权限收敛。</td>
+                </tr>
+                <tr>
+                    <td><strong>Haystack</strong></td>
+                    <td><code>Tool(function=Callable)</code> + <code>ToolInvoker</code>、<code>ComponentTool</code></td>
+                    <td>Haystack 偏通用工具执行器，是否代码执行取决于你绑定的函数/组件。</td>
+                </tr>
+                <tr>
+                    <td><strong>CrewAI</strong></td>
+                    <td><code>CodeInterpreterTool</code>、<code>allow_code_execution=True</code></td>
+                    <td>可用 Docker 沙盒，配置不当时也可落到宿主执行，需强约束。</td>
+                </tr>
+                <tr>
+                    <td><strong>AutoGen</strong></td>
+                    <td><code>PythonCodeExecutionTool</code>、<code>DockerCommandLineCodeExecutor</code>、<code>LocalCommandLineCodeExecutor</code>、<code>CodeExecutorAgent</code></td>
+                    <td>官方长期提供代码执行 Agent/执行器体系，默认应优先 Docker/隔离执行。</td>
+                </tr>
+                <tr>
+                    <td><strong>OpenClaw</strong></td>
+                    <td>底层 Pi 工具原语：<code>Read</code>、<code>Write</code>、<code>Edit</code>、<code>Bash</code>（其中 <code>Bash</code> 为核心执行能力）</td>
+                    <td>默认范式即“代码生成 + 执行”，企业无人值守场景治理成本最高。</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h3>4.2 关键事实</h3>
+    <ul>
+        <li><code>OpenClaw</code>：243k⭐，最新 release 2026-02-27。</li>
+        <li><code>Dify</code>：131k⭐，最新 release 2026-02-11。</li>
+        <li><code>LangGraph</code>：25.3k⭐，最新 release 2026-02-27。</li>
+        <li><code>PydanticAI</code>：15.2k⭐，最新 release 2026-02-23。</li>
+        <li><code>AgentScope</code>：16.7k⭐，最新 release 2026-02-15。</li>
+        <li><code>CoPaw</code>：3.8k⭐，最新 release 2026-02-27。</li>
+        <li><code>Semantic Kernel</code>：27.3k⭐，最新 release 2026-02-19。</li>
+        <li><code>Claude Agent SDK</code>：Python 5.1k⭐（latest: 2026-02-26），TypeScript 873⭐（latest: 2026-02-28）。</li>
+        <li><code>LlamaIndex</code>：47.3k⭐，最新 release 2026-02-18。</li>
+        <li><code>Haystack</code>：24.4k⭐，最新 release 2026-02-27。</li>
+        <li><code>CrewAI</code>：44.9k⭐，最新 release 2026-02-27。</li>
+        <li><code>AutoGen</code>：55k⭐，最新 release 2025-09-30；README 明确建议新用户优先考虑 Microsoft Agent Framework。</li>
+    </ul>
+
+    <h2>五、针对业务场景的推荐架构</h2>
+    
+    <h3>5.1 推荐架构</h3>
+    <p>
+        <code>API Gateway / BFF</code><br>
+        → <code>Agent Orchestrator（Dify 或 LangGraph）</code><br>
+        → <code>Tool Layer（只暴露白名单函数，不给 Bash）</code><br>
+        → <code>Data Layer（VectorDB / MariaDB / MinIO）</code><br>
+        → <code>Audit & Policy（RBAC、审批、审计日志）</code>
+    </p>
+
+    <h3>5.2 关键原则</h3>
+    <ol>
+        <li><strong>禁止 LLM 直接命令执行权限：</strong>不把 Bash/代码执行暴露为默认能力。</li>
+        <li><strong>读写分级：</strong>查询类工具自动放行；外部副作用类操作（写库、发邮件、改工单）必须策略审批。</li>
+        <li><strong>最小权限凭证：</strong>数据库只读账户、按表按动作授权、短期密钥。</li>
+        <li><strong>知识库防注入：</strong>文档入库前清洗 + 检索后指令隔离（将文档内容视为不可信数据）。</li>
+        <li><strong>网络出口白名单：</strong>禁公网泛访问，按域名/IP 出站控制。</li>
+        <li><strong>全链路可审计：</strong>记录“模型意图 -> 工具调用 -> 参数 -> 结果”。</li>
+    </ol>
+
+    <h2>六、最终选型建议</h2>
+    
+    <h3>方案 A（推荐）</h3>
+    <ul>
+        <li><strong>Dify（前台编排交付） + 受限 Tool Gateway（后端策略）</strong></li>
+        <li>适合：交付周期短、客户需要可视化运营后台、团队希望降低研发门槛。</li>
+    </ul>
+
+    <h3>方案 B（推荐）</h3>
+    <ul>
+        <li><strong>LangGraph + PydanticAI（核心编排 + 严格结构化输出）</strong></li>
+        <li>适合：复杂流程、强审计、需要精细化工程控制的项目。</li>
+    </ul>
+
+    <h3>方案 C（特定场景推荐）</h3>
+    <ul>
+        <li><strong>AgentScope（必要时结合 CoPaw 思路，不直接搬 CoPaw 全栈）</strong></li>
+        <li>适合：多 Agent 协同、Skill 体系深度定制、偏 Python 工程团队。</li>
+    </ul>
+
+    <h3>不建议作为企业生产主底座</h3>
+    <ul>
+        <li>OpenClaw / Pi（除非仅在强隔离沙盒内做实验或内部 PoC）</li>
+        <li>Claude Agent SDK / OpenCode（同类代码执行型范式，需极高治理成本）</li>
+    </ul>
+
+    <h2>七、会议讨论清单</h2>
+    <ol>
+        <li>本期项目的主优化目标是什么：优先“更快上线与交付效率”（开发/运维成本更低），还是优先“治理可控与审计完备”（安全与合规约束更强）？</li>
+        <li>是否接受“读操作默认免审批、写操作按风险分级审批”的策略（即使不开启代码执行型范式，该策略仍适用于发邮件、写库、改工单等业务写操作）？</li>
+        <li>是否先定义“高风险写操作清单”（如外发、删除、资金相关、批量修改），并统一要求审批？</li>
+        <li>客户是否要求可视化后台（偏 Dify）还是纯代码可控（偏 LangGraph）？</li>
+        <li>是否需要在一期就引入多 Agent 协作（偏 AgentScope）？</li>
+    </ol>
+
+    <h2>八、参考资料</h2>
+    <h3>公开仓库/官方文档</h3>
+    <ul>
+        <li>OpenClaw: <a href="https://github.com/openclaw/openclaw" target="_blank">https://github.com/openclaw/openclaw</a></li>
+        <li>Dify: <a href="https://github.com/langgenius/dify" target="_blank">https://github.com/langgenius/dify</a></li>
+        <li>LangGraph: <a href="https://github.com/langchain-ai/langgraph" target="_blank">https://github.com/langchain-ai/langgraph</a></li>
+        <li>LangChain: <a href="https://github.com/langchain-ai/langchain" target="_blank">https://github.com/langchain-ai/langchain</a></li>
+        <li>PydanticAI: <a href="https://github.com/pydantic/pydantic-ai" target="_blank">https://github.com/pydantic/pydantic-ai</a></li>
+        <li>Pydantic Toolsets（含 SkillsToolset 链接）: <a href="https://ai.pydantic.dev/toolsets/" target="_blank">https://ai.pydantic.dev/toolsets/</a></li>
+        <li>pydantic-ai-skills: <a href="https://github.com/DougTrajano/pydantic-ai-skills" target="_blank">https://github.com/DougTrajano/pydantic-ai-skills</a></li>
+        <li>AgentScope: <a href="https://github.com/agentscope-ai/agentscope" target="_blank">https://github.com/agentscope-ai/agentscope</a></li>
+        <li>CoPaw: <a href="https://github.com/agentscope-ai/CoPaw" target="_blank">https://github.com/agentscope-ai/CoPaw</a></li>
+        <li>Semantic Kernel: <a href="https://github.com/microsoft/semantic-kernel" target="_blank">https://github.com/microsoft/semantic-kernel</a></li>
+        <li>Claude Agent SDK (Python): <a href="https://github.com/anthropics/claude-agent-sdk-python" target="_blank">https://github.com/anthropics/claude-agent-sdk-python</a></li>
+        <li>Claude Agent SDK (TypeScript): <a href="https://github.com/anthropics/claude-agent-sdk-typescript" target="_blank">https://github.com/anthropics/claude-agent-sdk-typescript</a></li>
+        <li>LlamaIndex: <a href="https://github.com/run-llama/llama_index" target="_blank">https://github.com/run-llama/llama_index</a></li>
+        <li>Haystack: <a href="https://github.com/deepset-ai/haystack" target="_blank">https://github.com/deepset-ai/haystack</a></li>
+        <li>CrewAI: <a href="https://github.com/crewAIInc/crewAI" target="_blank">https://github.com/crewAIInc/crewAI</a></li>
+        <li>AutoGen: <a href="https://github.com/microsoft/autogen" target="_blank">https://github.com/microsoft/autogen</a></li>
+        <li>n8n（补充，注意 fair-code 许可）: <a href="https://github.com/n8n-io/n8n" target="_blank">https://github.com/n8n-io/n8n</a></li>
+    </ul>
+</div>
+
+</body>
+</html>
