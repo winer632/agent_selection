@@ -7,161 +7,175 @@
     <style>
         :root {
             --primary-color: #2c3e50;
-            --secondary-color: #3498db;
-            --accent-color: #e74c3c;
-            --bg-color: #f8f9fa;
-            --text-color: #333;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+            --text-color: #333333;
+            --bg-color: #f4f7f6;
+            --content-bg: #ffffff;
             --border-color: #e2e8f0;
+            --code-bg: #f8f9fa;
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             line-height: 1.6;
             color: var(--text-color);
-            max-width: 1100px;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
             margin: 0 auto;
-            padding: 30px 20px;
-            background-color: #ffffff;
+            background-color: var(--content-bg);
+            padding: 40px 50px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--primary-color);
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+            font-weight: 600;
         }
 
         h1 {
-            text-align: center;
-            color: var(--primary-color);
             font-size: 2.2em;
-            border-bottom: 3px solid var(--secondary-color);
-            padding-bottom: 15px;
-            margin-bottom: 30px;
+            text-align: center;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+            margin-top: 0;
         }
 
         h2 {
-            color: var(--primary-color);
             font-size: 1.6em;
-            border-bottom: 2px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
             padding-bottom: 8px;
-            margin-top: 40px;
+            margin-top: 2em;
         }
 
         h3 {
-            color: var(--secondary-color);
             font-size: 1.3em;
-            margin-top: 25px;
+            color: var(--secondary-color);
         }
 
-        h4 {
-            color: #34495e;
-            font-size: 1.1em;
-            margin-top: 20px;
+        p {
+            margin-bottom: 1em;
         }
 
         blockquote {
-            background: var(--bg-color);
-            border-left: 5px solid var(--secondary-color);
-            margin: 20px 0;
+            margin: 1.5em 0;
             padding: 15px 20px;
-            color: #555;
-            font-size: 1.05em;
+            background-color: #f0f7fb;
+            border-left: 5px solid var(--accent-color);
             border-radius: 0 5px 5px 0;
+            color: #555;
         }
 
-        .conclusion-box {
-            background-color: #e8f4f8;
-            border: 1px solid #bce8f1;
-            border-left: 5px solid var(--secondary-color);
-            padding: 15px 20px;
-            border-radius: 4px;
-            margin: 20px 0;
-        }
-
-        .conclusion-box strong {
-            color: var(--primary-color);
-            font-size: 1.1em;
+        blockquote p:last-child {
+            margin-bottom: 0;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 20px 0;
-            background-color: #fff;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            margin: 1.5em 0;
+            font-size: 0.95em;
         }
 
         th, td {
-            border: 1px solid var(--border-color);
             padding: 12px 15px;
+            border: 1px solid var(--border-color);
             text-align: left;
         }
 
         th {
-            background-color: #f1f5f9;
+            background-color: #f8fafc;
             color: var(--primary-color);
             font-weight: 600;
         }
 
         tr:nth-child(even) {
-            background-color: #f8fafc;
+            background-color: #fdfdfd;
         }
 
         tr:hover {
             background-color: #f1f5f9;
         }
 
-        .judgment {
-            background-color: #fff3cd;
-            border: 1px solid #ffeeba;
-            border-left: 5px solid #ffc107;
-            padding: 12px 15px;
-            border-radius: 4px;
-            margin-top: 10px;
-            color: #856404;
-        }
-
-        .judgment strong {
-            color: #664d03;
-        }
-
         ul, ol {
+            margin-bottom: 1.5em;
             padding-left: 25px;
         }
 
         li {
-            margin-bottom: 8px;
+            margin-bottom: 0.5em;
         }
 
         code {
-            background-color: #f1f5f9;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+            background-color: var(--code-bg);
             padding: 2px 6px;
             border-radius: 4px;
-            font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
-            color: #e83e8c;
             font-size: 0.9em;
+            color: #e83e8c;
         }
 
-        .highlight-up { color: #27ae60; font-weight: bold; }
-        .highlight-down { color: #e74c3c; font-weight: bold; }
-        
-        .icon-yes { color: #27ae60; }
-        .icon-warn { color: #f39c12; }
-        .icon-no { color: #c0392b; }
+        pre {
+            background-color: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+            line-height: 1.5;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            color: inherit;
+        }
+
+        strong {
+            color: #111;
+            font-weight: 600;
+        }
+
+        hr {
+            border: 0;
+            height: 1px;
+            background: var(--border-color);
+            margin: 2em 0;
+        }
     </style>
 </head>
 <body>
 
+<div class="container">
+
     <h1>Agent 框架选型深度分析报告</h1>
 
     <blockquote>
-        基于 OpenClaw、CoPaw、AgentScope 三个项目源码，对照《2026项目需求整理.xlsx》中 6 个项目线的需求进行深度分析。
+        <p>基于 OpenClaw、CoPaw、AgentScope 三个项目源码，对照《2026项目需求整理.xlsx》中 6 个项目线的需求进行分析。</p>
     </blockquote>
 
+    <hr>
+
     <h2>一、我的选型建议</h2>
-    <div class="conclusion-box">
-        结论：<strong>推荐 AgentScope 作为核心底座</strong><br><br>
-        这与 <code>agent-framework-selection-analysis.html</code> 的结论一致，但理由有所补充和修正。下面详细展开。
-    </div>
+
+    <h3>结论：<strong>推荐 AgentScope 作为核心底座</strong></h3>
+    <p>这与 <code>agent-framework-selection-analysis.html</code> 的结论一致，但理由有所补充和修正。下面详细展开。</p>
+
+    <hr>
 
     <h2>二、三个框架的真实定位（基于源码分析）</h2>
 
     <h3>AgentScope — Python Agent 开发框架</h3>
     <p>从 <code>agentscope/src/agentscope/</code> 的模块结构来看，AgentScope 是一个<strong>完整的 Agent 开发 SDK</strong>：</p>
+
     <table>
         <thead>
             <tr>
@@ -256,6 +270,8 @@
     </ul>
     <p><strong>核心优势</strong>：渠道覆盖极广、产品化成熟度高、macOS/iOS/Android 节点生态完善。</p>
 
+    <hr>
+
     <h2>三、从需求维度逐一匹配</h2>
 
     <h3>3.1 海关 POC-3期（RAG + 意图管理 + 邮件回复）</h3>
@@ -271,39 +287,37 @@
         <tbody>
             <tr>
                 <td>多意图识别 + 知识库分层召回</td>
-                <td><span class="icon-yes">✅</span> <code>rag/</code> + <code>agent/</code> 可编程实现</td>
-                <td><span class="icon-warn">⚠️</span> 需定制</td>
-                <td><span class="icon-warn">⚠️</span> 需定制</td>
+                <td>✅ <code>rag/</code> + <code>agent/</code> 可编程实现</td>
+                <td>⚠️ 需定制</td>
+                <td>⚠️ 需定制</td>
             </tr>
             <tr>
                 <td>多格式文档处理（doc/pdf/excel）</td>
-                <td><span class="icon-yes">✅</span> 可编排</td>
-                <td><span class="icon-warn">⚠️</span> Skills 扩展</td>
-                <td><span class="icon-warn">⚠️</span> Skills 扩展</td>
+                <td>✅ 可编排</td>
+                <td>⚠️ Skills 扩展</td>
+                <td>⚠️ Skills 扩展</td>
             </tr>
             <tr>
                 <td>答案改写 + 风格控制</td>
-                <td><span class="icon-yes">✅</span> Prompt 工程</td>
-                <td><span class="icon-yes">✅</span> Prompt 工程</td>
-                <td><span class="icon-yes">✅</span> Prompt 工程</td>
+                <td>✅ Prompt 工程</td>
+                <td>✅ Prompt 工程</td>
+                <td>✅ Prompt 工程</td>
             </tr>
             <tr>
                 <td>本地部署</td>
-                <td><span class="icon-yes">✅</span> 明确支持</td>
-                <td><span class="icon-yes">✅</span> 支持</td>
-                <td><span class="icon-yes">✅</span> 支持</td>
+                <td>✅ 明确支持</td>
+                <td>✅ 支持</td>
+                <td>✅ 支持</td>
             </tr>
             <tr>
                 <td>繁简英多语言</td>
-                <td><span class="icon-yes">✅</span></td>
-                <td><span class="icon-yes">✅</span></td>
-                <td><span class="icon-yes">✅</span></td>
+                <td>✅</td>
+                <td>✅</td>
+                <td>✅</td>
             </tr>
         </tbody>
     </table>
-    <div class="judgment">
-        <strong>判断：</strong>三者均可做，但 AgentScope 的 RAG 模块 + 可编程分层逻辑（意图匹配 → QA 知识库 → 文本知识库的 Layer 1/2/3 策略）更适合这种<strong>复杂检索编排</strong>场景。
-    </div>
+    <p><strong>判断</strong>：三者均可做，但 AgentScope 的 RAG 模块 + 可编程分层逻辑（意图匹配 → QA 知识库 → 文本知识库的 Layer 1/2/3 策略）更适合这种<strong>复杂检索编排</strong>场景。</p>
 
     <h3>3.2 文化 3.0（翻译 + TTS + 词表）</h3>
     <table>
@@ -318,33 +332,31 @@
         <tbody>
             <tr>
                 <td>多语言翻译（含阿拉伯语）</td>
-                <td><span class="icon-yes">✅</span></td>
-                <td><span class="icon-yes">✅</span></td>
-                <td><span class="icon-yes">✅</span></td>
+                <td>✅</td>
+                <td>✅</td>
+                <td>✅</td>
             </tr>
             <tr>
                 <td>TTS 有声书</td>
-                <td><span class="icon-yes">✅</span> <code>tts/</code> 原生支持</td>
-                <td><span class="icon-warn">⚠️</span> 依赖底座</td>
-                <td><span class="icon-yes">✅</span> ElevenLabs</td>
+                <td>✅ <code>tts/</code> 原生支持</td>
+                <td>⚠️ 依赖底座</td>
+                <td>✅ ElevenLabs</td>
             </tr>
             <tr>
                 <td>断句重组 + 词表管理</td>
-                <td><span class="icon-yes">✅</span> 可编程</td>
-                <td><span class="icon-warn">⚠️</span> 需定制</td>
-                <td><span class="icon-warn">⚠️</span> 需定制</td>
+                <td>✅ 可编程</td>
+                <td>⚠️ 需定制</td>
+                <td>⚠️ 需定制</td>
             </tr>
             <tr>
                 <td>SI 系统 JSON 对接</td>
-                <td><span class="icon-yes">✅</span> API 服务</td>
-                <td><span class="icon-warn">⚠️</span> 需定制</td>
-                <td><span class="icon-warn">⚠️</span> 需定制</td>
+                <td>✅ API 服务</td>
+                <td>⚠️ 需定制</td>
+                <td>⚠️ 需定制</td>
             </tr>
         </tbody>
     </table>
-    <div class="judgment">
-        <strong>判断：</strong>翻译 pipeline 的断句、词表提取、上下文一致性控制需要<strong>精细的流程编排</strong>，AgentScope 的 Pipeline 概念更贴合。
-    </div>
+    <p><strong>判断</strong>：翻译 pipeline 的断句、词表提取、上下文一致性控制需要<strong>精细的流程编排</strong>，AgentScope 的 Pipeline 概念更贴合。</p>
 
     <h3>3.3 法律大模型（知识推理 + 追问）</h3>
     <table>
@@ -359,33 +371,31 @@
         <tbody>
             <tr>
                 <td>法律知识库 + 实体关系</td>
-                <td><span class="icon-yes">✅</span> <code>rag/</code> + 可编程</td>
-                <td><span class="icon-warn">⚠️</span></td>
-                <td><span class="icon-warn">⚠️</span></td>
+                <td>✅ <code>rag/</code> + 可编程</td>
+                <td>⚠️</td>
+                <td>⚠️</td>
             </tr>
             <tr>
                 <td>法律规则推理</td>
-                <td><span class="icon-yes">✅</span> ReActAgent + Plan</td>
-                <td><span class="icon-warn">⚠️</span></td>
-                <td><span class="icon-warn">⚠️</span></td>
+                <td>✅ ReActAgent + Plan</td>
+                <td>⚠️</td>
+                <td>⚠️</td>
             </tr>
             <tr>
                 <td>事实缺失判断 + 追问</td>
-                <td><span class="icon-yes">✅</span> Agent 循环可控</td>
-                <td><span class="icon-warn">⚠️</span></td>
-                <td><span class="icon-warn">⚠️</span></td>
+                <td>✅ Agent 循环可控</td>
+                <td>⚠️</td>
+                <td>⚠️</td>
             </tr>
             <tr>
                 <td>多步结论推理</td>
-                <td><span class="icon-yes">✅</span> Pipeline 编排</td>
-                <td><span class="icon-warn">⚠️</span></td>
-                <td><span class="icon-warn">⚠️</span></td>
+                <td>✅ Pipeline 编排</td>
+                <td>⚠️</td>
+                <td>⚠️</td>
             </tr>
         </tbody>
     </table>
-    <div class="judgment">
-        <strong>判断：</strong>法律推理需要<strong>多步骤链式推理 + 条件分支</strong>，这是 Agent 框架的核心能力，AgentScope 最适合。
-    </div>
+    <p><strong>判断</strong>：法律推理需要<strong>多步骤链式推理 + 条件分支</strong>，这是 Agent 框架的核心能力，AgentScope 最适合。</p>
 
     <h3>3.4 警署-网络安全（最复杂的项目）</h3>
     <table>
@@ -400,51 +410,49 @@
         <tbody>
             <tr>
                 <td>月均 20万+ IOC 检测</td>
-                <td><span class="icon-yes">✅</span> 可编排处理流水线</td>
-                <td><span class="icon-no">❌</span> 不适合</td>
-                <td><span class="icon-no">❌</span> 不适合</td>
+                <td>✅ 可编排处理流水线</td>
+                <td>❌ 不适合</td>
+                <td>❌ 不适合</td>
             </tr>
             <tr>
                 <td>双 LLM 模型编排</td>
-                <td><span class="icon-yes">✅</span> Agent 路由 + MsgHub</td>
-                <td><span class="icon-warn">⚠️</span></td>
-                <td><span class="icon-warn">⚠️</span></td>
+                <td>✅ Agent 路由 + MsgHub</td>
+                <td>⚠️</td>
+                <td>⚠️</td>
             </tr>
             <tr>
                 <td>外部 API 集成 (ThreatBook, Whois)</td>
-                <td><span class="icon-yes">✅</span> MCP + Toolkit</td>
-                <td><span class="icon-yes">✅</span> MCP</td>
-                <td><span class="icon-yes">✅</span> MCP</td>
+                <td>✅ MCP + Toolkit</td>
+                <td>✅ MCP</td>
+                <td>✅ MCP</td>
             </tr>
             <tr>
                 <td>合规报告生成</td>
-                <td><span class="icon-yes">✅</span> Pipeline 编排</td>
-                <td><span class="icon-warn">⚠️</span></td>
-                <td><span class="icon-warn">⚠️</span></td>
+                <td>✅ Pipeline 编排</td>
+                <td>⚠️</td>
+                <td>⚠️</td>
             </tr>
             <tr>
                 <td>SOCA 平台集成</td>
-                <td><span class="icon-yes">✅</span> A2A + API</td>
-                <td><span class="icon-warn">⚠️</span></td>
-                <td><span class="icon-warn">⚠️</span></td>
+                <td>✅ A2A + API</td>
+                <td>⚠️</td>
+                <td>⚠️</td>
             </tr>
             <tr>
                 <td>99.5% 可用性</td>
-                <td><span class="icon-yes">✅</span> K8s 部署 + OTel</td>
-                <td><span class="icon-warn">⚠️</span></td>
-                <td><span class="icon-warn">⚠️</span></td>
+                <td>✅ K8s 部署 + OTel</td>
+                <td>⚠️</td>
+                <td>⚠️</td>
             </tr>
             <tr>
                 <td>数据主权/合规</td>
-                <td><span class="icon-yes">✅</span> 本地部署</td>
-                <td><span class="icon-yes">✅</span></td>
-                <td><span class="icon-yes">✅</span></td>
+                <td>✅ 本地部署</td>
+                <td>✅</td>
+                <td>✅</td>
             </tr>
         </tbody>
     </table>
-    <div class="judgment">
-        <strong>判断：</strong>这个项目的复杂度（多系统集成、高可用要求、双模型编排、合规）远超助手产品的能力范围，<strong>只有 AgentScope 具备框架级支撑能力</strong>。
-    </div>
+    <p><strong>判断</strong>：这个项目的复杂度（多系统集成、高可用要求、双模型编排、合规）远超助手产品的能力范围，<strong>只有 AgentScope 具备框架级支撑能力</strong>。</p>
 
     <h3>3.5 Leapstack（文档智能处理）</h3>
     <table>
@@ -459,33 +467,31 @@
         <tbody>
             <tr>
                 <td>多格式文档理解</td>
-                <td><span class="icon-yes">✅</span> 需集成 VLM/OCR</td>
-                <td><span class="icon-warn">⚠️</span></td>
-                <td><span class="icon-warn">⚠️</span></td>
+                <td>✅ 需集成 VLM/OCR</td>
+                <td>⚠️</td>
+                <td>⚠️</td>
             </tr>
             <tr>
                 <td>JSON 结构化输出</td>
-                <td><span class="icon-yes">✅</span> Structured Output</td>
-                <td><span class="icon-warn">⚠️</span></td>
-                <td><span class="icon-warn">⚠️</span></td>
+                <td>✅ Structured Output</td>
+                <td>⚠️</td>
+                <td>⚠️</td>
             </tr>
             <tr>
                 <td>SaaS API 交付</td>
-                <td><span class="icon-yes">✅</span> Agent 可部署为服务</td>
-                <td><span class="icon-no">❌</span> 产品形态</td>
-                <td><span class="icon-no">❌</span> 产品形态</td>
+                <td>✅ Agent 可部署为服务</td>
+                <td>❌ 产品形态</td>
+                <td>❌ 产品形态</td>
             </tr>
             <tr>
                 <td>篡改检测/置信度</td>
-                <td><span class="icon-yes">✅</span> 可编排</td>
-                <td><span class="icon-warn">⚠️</span></td>
-                <td><span class="icon-warn">⚠️</span></td>
+                <td>✅ 可编排</td>
+                <td>⚠️</td>
+                <td>⚠️</td>
             </tr>
         </tbody>
     </table>
-    <div class="judgment">
-        <strong>判断：</strong>这是一个<strong>API 服务</strong>交付场景，需要将 Agent 封装为 RESTful API，只有 AgentScope 的部署模型（本地/云/K8s）天然支持。
-    </div>
+    <p><strong>判断</strong>：这是一个<strong>API 服务</strong>交付场景，需要将 Agent 封装为 RESTful API，只有 AgentScope 的部署模型（本地/云/K8s）天然支持。</p>
 
     <h3>3.6 海关云（最全面的平台）</h3>
     <table>
@@ -500,45 +506,45 @@
         <tbody>
             <tr>
                 <td>网页爬虫 + 数据采集</td>
-                <td><span class="icon-warn">⚠️</span> 需上层系统</td>
-                <td><span class="icon-no">❌</span></td>
-                <td><span class="icon-no">❌</span></td>
+                <td>⚠️ 需上层系统</td>
+                <td>❌</td>
+                <td>❌</td>
             </tr>
             <tr>
                 <td>多模态数据处理</td>
-                <td><span class="icon-yes">✅</span></td>
-                <td><span class="icon-warn">⚠️</span> 在 Planned</td>
-                <td><span class="icon-warn">⚠️</span></td>
+                <td>✅</td>
+                <td>⚠️ 在 Planned</td>
+                <td>⚠️</td>
             </tr>
             <tr>
                 <td>图数据库</td>
-                <td><span class="icon-warn">⚠️</span> 需集成</td>
-                <td><span class="icon-no">❌</span></td>
-                <td><span class="icon-no">❌</span></td>
+                <td>⚠️ 需集成</td>
+                <td>❌</td>
+                <td>❌</td>
             </tr>
             <tr>
                 <td>模型训练/部署</td>
-                <td><span class="icon-yes">✅</span> <code>tuner/</code> + Runtime</td>
-                <td><span class="icon-no">❌</span></td>
-                <td><span class="icon-no">❌</span></td>
+                <td>✅ <code>tuner/</code> + Runtime</td>
+                <td>❌</td>
+                <td>❌</td>
             </tr>
             <tr>
                 <td>SSO/2FA</td>
-                <td><span class="icon-warn">⚠️</span> 需上层系统</td>
-                <td><span class="icon-no">❌</span></td>
-                <td><span class="icon-no">❌</span></td>
+                <td>⚠️ 需上层系统</td>
+                <td>❌</td>
+                <td>❌</td>
             </tr>
             <tr>
                 <td>可视化仪表盘</td>
-                <td><span class="icon-warn">⚠️</span> 需上层系统</td>
-                <td><span class="icon-no">❌</span></td>
-                <td><span class="icon-no">❌</span></td>
+                <td>⚠️ 需上层系统</td>
+                <td>❌</td>
+                <td>❌</td>
             </tr>
         </tbody>
     </table>
-    <div class="judgment">
-        <strong>判断：</strong>海关云是一个<strong>大型数据平台</strong>，超出了任何一个 Agent 框架的覆盖范围。但 AgentScope 能覆盖其中 <strong>AI 分析、NLP、模型训练</strong> 等核心模块，其余需上层平台工程支撑。
-    </div>
+    <p><strong>判断</strong>：海关云是一个<strong>大型数据平台</strong>，超出了任何一个 Agent 框架的覆盖范围。但 AgentScope 能覆盖其中 <strong>AI 分析、NLP、模型训练</strong> 等核心模块，其余需上层平台工程支撑。</p>
+
+    <hr>
 
     <h2>四、对 agent-framework-selection-analysis.html 的评价</h2>
 
@@ -551,9 +557,11 @@
     </ol>
 
     <h3>有异议的部分</h3>
-    
+
     <h4>异议1：OpenClaw 的多智能体评分偏高</h4>
-    <blockquote>HTML 中给 OpenClaw 多智能体得分 <strong>7.5</strong>，我认为偏高，应为 <strong>5.5-6.0</strong>。</blockquote>
+    <blockquote>
+        <p>HTML 中给 OpenClaw 多智能体得分 <strong>7.5</strong>，我认为偏高，应为 <strong>5.5-6.0</strong>。</p>
+    </blockquote>
     <p><strong>理由</strong>：OpenClaw 的 "多 agent" 本质是 <strong>session routing</strong>（把不同渠道/账号路由到不同 workspace 的 agent 实例），不是真正的<strong>多智能体协同编排</strong>。从源码看：</p>
     <ul>
         <li><code>sessions/</code> 模块是会话管理，不是 agent 间的协作通信</li>
@@ -563,12 +571,16 @@
     <p>OpenClaw 的 "多 agent" 更像是"多实例"而非"多智能体协同"。</p>
 
     <h4>异议2：CoPaw 系统集成得分偏低</h4>
-    <blockquote>HTML 中给 CoPaw 系统集成得分 <strong>7.5</strong>，实际可以给 <strong>7.0</strong>。</blockquote>
+    <blockquote>
+        <p>HTML 中给 CoPaw 系统集成得分 <strong>7.5</strong>，实际可以给 <strong>7.0</strong>。</p>
+    </blockquote>
     <p><strong>理由</strong>：CoPaw v0.0.4 刚开始支持 MCP，功能尚处初期。从 Roadmap 看，MCP runtime install 和 hot-reload 还在 Planned 状态。不过 CoPaw 的渠道集成（钉钉、飞书、QQ）对国内场景确实有价值，但这属于"渠道接入"能力，不是"系统集成"。</p>
 
     <h4>异议3：分析缺少关键维度——语言/技术栈适配</h4>
     <p>HTML 完全没有提到一个关键因素：</p>
-    <blockquote><strong>OpenClaw 是 TypeScript/Node.js 技术栈，AgentScope 和 CoPaw 是 Python 技术栈。</strong></blockquote>
+    <blockquote>
+        <p><strong>OpenClaw 是 TypeScript/Node.js 技术栈，AgentScope 和 CoPaw 是 Python 技术栈。</strong></p>
+    </blockquote>
     <p>这对需求匹配有重大影响：</p>
     <ul>
         <li>你的 6 个项目都涉及 <strong>NLP、RAG、模型训练、VLM/OCR</strong>，这些领域 Python 生态（PyTorch、Transformers、LangChain、各种 Embedding 库）远比 Node.js 成熟</li>
@@ -579,11 +591,15 @@
 
     <h4>异议4：缺少 CoPaw 与 AgentScope 关系的说明</h4>
     <p>HTML 没有明确指出：</p>
-    <blockquote><strong>CoPaw 是 AgentScope 团队的产品，底层直接依赖 AgentScope。</strong></blockquote>
+    <blockquote>
+        <p><strong>CoPaw 是 AgentScope 团队的产品，底层直接依赖 AgentScope。</strong></p>
+    </blockquote>
     <p>这意味着选择 AgentScope 作为底座并<strong>不排斥</strong>用 CoPaw 的渠道能力（钉钉、飞书、QQ），实际上可以<strong>直接复用 CoPaw 的 channel 代码</strong>。因此 AgentScope vs CoPaw 不是一个"二选一"的关系，而是"底层框架 vs 上层产品"的关系。</p>
 
     <h4>异议5：加权评分中"评测调优"权重应更高</h4>
-    <blockquote>HTML 给"评测、观测、调优闭环"权重 <strong>15%</strong>，建议提高到 <strong>20%</strong>。</blockquote>
+    <blockquote>
+        <p>HTML 给"评测、观测、调优闭环"权重 <strong>15%</strong>，建议提高到 <strong>20%</strong>。</p>
+    </blockquote>
     <p><strong>理由</strong>：你的需求中有：</p>
     <ul>
         <li>海关项目需要"不断增加意图描述中的限制条件"，即需要持续迭代和评测</li>
@@ -592,7 +608,10 @@
     </ul>
     <p>这些都依赖<strong>系统级的评测和调优闭环</strong>。AgentScope 有 <code>evaluate/</code> + <code>tuner/</code> + Agentic RL，这是其他两个框架完全不具备的核心能力。</p>
 
+    <hr>
+
     <h2>五、修正后的评分矩阵</h2>
+
     <table>
         <thead>
             <tr>
@@ -609,13 +628,13 @@
                 <td>25%</td>
                 <td><strong>9.5</strong></td>
                 <td>6.0</td>
-                <td><strong>5.5</strong> <span class="highlight-down">↓</span></td>
+                <td><strong>5.5</strong> ↓</td>
             </tr>
             <tr>
                 <td>系统集成（MCP/API/A2A）</td>
                 <td>20%</td>
                 <td><strong>9.0</strong></td>
-                <td><strong>7.0</strong> <span class="highlight-down">↓</span></td>
+                <td><strong>7.0</strong> ↓</td>
                 <td>8.0</td>
             </tr>
             <tr>
@@ -627,14 +646,14 @@
             </tr>
             <tr>
                 <td>评测、观测、调优闭环</td>
-                <td><strong>20%</strong> <span class="highlight-up">↑</span></td>
+                <td><strong>20%</strong> ↑</td>
                 <td><strong>9.0</strong></td>
                 <td>5.5</td>
                 <td>5.5</td>
             </tr>
             <tr>
                 <td>开箱交互与多渠道产品能力</td>
-                <td>5% <span class="highlight-down">↓</span></td>
+                <td>5% ↓</td>
                 <td>6.0</td>
                 <td>8.5</td>
                 <td><strong>9.5</strong></td>
@@ -655,17 +674,170 @@
             </tr>
         </tbody>
     </table>
-    <div class="judgment">
-        修正后 AgentScope 领先优势更为明显（8.88 vs 6.48/6.40），因为在核心需求维度上差距更真实。
-    </div>
+    <blockquote>
+        <p>修正后 AgentScope 领先优势更为明显（8.88 vs 6.48/6.40），因为在核心需求维度上差距更真实。</p>
+    </blockquote>
+
+    <hr>
 
     <h2>六、落地建议</h2>
     <ol>
-        <li><strong>P0（核心底座）</strong>：选择 <strong>AgentScope</strong> 构建统一 Agent 开发底座。</li>
-        <li><strong>P1（渠道复用）</strong>：从 <strong>CoPaw</strong> 复用钉钉/飞书/QQ 等国内渠道代码（同一团队，技术栈一致）。</li>
-        <li><strong>P2（项目编排）</strong>：按项目线构建独立的 workflow（海关问答、警署情报、法律推理、文档智能）。</li>
-        <li><strong>注意</strong>：海关云项目超出 Agent 框架范围，需要独立的数据平台工程支撑（BI、ETL、图数据库等）。</li>
+        <li><strong>P0（核心底座）</strong>：选择 AgentScope 构建统一 Agent 开发底座</li>
+        <li><strong>P1（渠道复用）</strong>：从 CoPaw 复用钉钉/飞书/QQ 等国内渠道代码（同一团队，技术栈一致）</li>
+        <li><strong>P2（项目编排）</strong>：按项目线构建独立的 workflow（海关问答、警署情报、法律推理、文档智能）</li>
+        <li><strong>注意</strong>：海关云项目超出 Agent 框架范围，需要独立的数据平台工程支撑（BI、ETL、图数据库等）</li>
     </ol>
+
+    <hr>
+
+    <h2>七、是否有比 AgentScope 更优的选择？</h2>
+    <p>除 OpenClaw / CoPaw / AgentScope 三者之外，当前 Agent 框架领域还有几个值得认真考虑的方案。</p>
+
+    <h3>7.1 LangGraph + LangChain（最强竞争者）</h3>
+    <p>这是对本需求<strong>匹配度最接近甚至某些维度超过 AgentScope</strong> 的方案：</p>
+    <table>
+        <thead>
+            <tr>
+                <th>维度</th>
+                <th>LangGraph / LangChain</th>
+                <th>AgentScope</th>
+                <th>判断</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>RAG 生态</td>
+                <td>⭐⭐⭐⭐⭐ 极其丰富，数百种 Loader / Splitter / Retriever</td>
+                <td>⭐⭐⭐ 内置但生态较小</td>
+                <td><strong>LangChain 胜</strong></td>
+            </tr>
+            <tr>
+                <td>多 Agent 编排</td>
+                <td>⭐⭐⭐⭐ LangGraph 状态机 + 条件路由</td>
+                <td>⭐⭐⭐⭐ MsgHub + Pipeline</td>
+                <td>持平</td>
+            </tr>
+            <tr>
+                <td>社区 / 文档 / 示例</td>
+                <td>⭐⭐⭐⭐⭐ 全球最大 Agent 社区</td>
+                <td>⭐⭐⭐ 中国社区为主</td>
+                <td><strong>LangChain 胜</strong></td>
+            </tr>
+            <tr>
+                <td>可观测性</td>
+                <td>⭐⭐⭐⭐⭐ LangSmith（但需云服务）</td>
+                <td>⭐⭐⭐⭐ OTel 原生</td>
+                <td>各有优势</td>
+            </tr>
+            <tr>
+                <td>评测 / 调优</td>
+                <td>⭐⭐⭐ LangSmith Evaluation</td>
+                <td>⭐⭐⭐⭐ Evaluate + Tuner + Agentic RL</td>
+                <td><strong>AgentScope 胜</strong></td>
+            </tr>
+            <tr>
+                <td>本地部署 / 数据主权</td>
+                <td>⭐⭐⭐ LangSmith 需要自建或放弃部分能力</td>
+                <td>⭐⭐⭐⭐⭐ 完全本地化</td>
+                <td><strong>AgentScope 胜</strong></td>
+            </tr>
+            <tr>
+                <td>模型调优集成</td>
+                <td>⚠️ 无内置</td>
+                <td>✅ <code>tuner/</code> + Trinity-RFT</td>
+                <td><strong>AgentScope 胜</strong></td>
+            </tr>
+        </tbody>
+    </table>
+    <p><strong>对本需求的适配性</strong>：LangChain 的 RAG 生态对海关 POC 和法律大模型项目很有吸引力，但 <strong>LangSmith 的云依赖与数据主权要求冲突</strong>（海关和警署项目明确要求本地部署），且缺少 AgentScope 的 Agentic RL 调优能力。</p>
+
+    <h3>7.2 Dify（低代码平台型）</h3>
+    <p>适合<strong>快速交付的轻量项目</strong>：</p>
+    <table>
+        <thead>
+            <tr>
+                <th>优势</th>
+                <th>劣势</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>可视化工作流编排，降低开发门槛</td>
+                <td>深度定制受限，不适合复杂逻辑</td>
+            </tr>
+            <tr>
+                <td>内置 RAG 管线 + 向量数据库管理</td>
+                <td>多 Agent 协同能力较弱</td>
+            </tr>
+            <tr>
+                <td>API 管理和发布友好</td>
+                <td>缺少评测 / 调优闭环</td>
+            </tr>
+            <tr>
+                <td>支持本地部署（Docker）</td>
+                <td>警署级别的高可用 / 合规需要额外工程</td>
+            </tr>
+        </tbody>
+    </table>
+    <p><strong>对本需求的适配性</strong>：海关 POC-3期和 Leapstack 这种直觉上最简单的项目，Dify 可以快速出 Demo。但 6 个项目线需要<strong>统一底座</strong>，Dify 在法律推理、警署情报联合分析等场景会力不从心。</p>
+
+    <h3>7.3 AutoGen / AG2（微软）</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>优势</th>
+                <th>劣势</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>多 Agent 对话设计成熟</td>
+                <td>API 变化频繁，生态不如 LangChain</td>
+            </tr>
+            <tr>
+                <td>GroupChat + 代码执行沙箱</td>
+                <td>RAG 功能需额外集成</td>
+            </tr>
+            <tr>
+                <td>微软背景，与 Azure 深度集成</td>
+                <td>本地部署友好度不如 AgentScope</td>
+            </tr>
+        </tbody>
+    </table>
+    <p><strong>对本需求的适配性</strong>：多 Agent 对话能力不错，但<strong>不具备 AgentScope 的评测调优闭环</strong>，且与国内企业客户技术生态（阿里云、本地部署）适配度较低。</p>
+
+    <hr>
+
+    <h2>八、综合判断</h2>
+    <p>回到本需求的具体约束条件：</p>
+    <ol>
+        <li><strong>数据主权 / 本地部署</strong> — 海关和警署项目都在本地数据中心，排除强依赖云的方案</li>
+        <li><strong>中文 / 粤语支持</strong> — 需要对中文场景有良好适配</li>
+        <li><strong>6 个项目线统一底座</strong> — 需要高可编程性，不能是低代码平台</li>
+        <li><strong>评测和持续迭代</strong> — 海关意图调优、警署准确率要求</li>
+        <li><strong>团队技术栈</strong> — 以 Python 为主</li>
+    </ol>
+    
+    <blockquote>
+        <p><strong>在这些约束下：AgentScope 仍然是最优选择，但 LangGraph / LangChain 是最值得认真考虑的 Plan B。</strong></p>
+    </blockquote>
+    
+    <p>如果团队对 LangChain 生态更熟悉，可以考虑 <strong>LangGraph（编排层）+ LangChain（RAG）+ 自建评测/调优模块</strong> 的组合，但需要<strong>额外投入</strong>构建 LangSmith 的本地替代（如用 LangFuse 开源版）和模型调优能力。</p>
+
+    <hr>
+
+    <h2>九、推荐的务实混合策略</h2>
+    <p>如果不想完全押注一个框架，可以采用以下分层组合：</p>
+
+<pre><code>AgentScope（核心编排 + 评测调优 + Agent 运行时）
+    ↓
+LangChain 组件（RAG 的 Document Loader / Splitter / Retriever 生态复用）
+    ↓
+CoPaw（国内渠道触达：钉钉 / 飞书 / QQ）</code></pre>
+
+    <p>AgentScope 是 Python 框架，<strong>完全可以在 Agent 内部调用 LangChain 的 RAG 组件</strong>（如 document loaders、text splitters），这样就能兼得两者优势。这并不矛盾 — 框架编排用 AgentScope，具体的 RAG 管线细节用 LangChain 生态的成熟组件。</p>
+
+</div>
 
 </body>
 </html>
