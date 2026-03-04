@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CoPaw 技术架构介绍（2026）</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --text: #142132;
+      --muted: #5b6877;
+      --line: #dbe2ea;
+      --brand: #0a57c9;
+      --brand-soft: #edf4ff;
+      --chip: #eef3f8;
+      --ok: #16794e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background: linear-gradient(180deg, #eaf1fb 0, var(--bg) 240px);
+      line-height: 1.68;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 20px 56px; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.04);
+      padding: 20px 22px;
+      margin-bottom: 14px;
+    }
+    .hero h1 { margin: 0 0 8px; font-size: 30px; line-height: 1.22; }
+    .hero p { margin: 0; color: var(--muted); }
+    .meta { margin-top: 10px; }
+    .chip {
+      display: inline-block;
+      border: 1px solid var(--line);
+      background: var(--chip);
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-size: 12px;
+      margin: 4px 8px 0 0;
+      color: #2a3d51;
+    }
+    h2 { margin: 0 0 10px; font-size: 22px; }
+    h3 { margin: 0 0 8px; font-size: 17px; }
+    p { margin: 8px 0; }
+    ul { margin: 8px 0 0 18px; padding: 0; }
+
+    .summary {
+      margin-top: 12px;
+      border-left: 4px solid var(--brand);
+      background: var(--brand-soft);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+
+    .layer-grid,
+    .mapping-grid,
+    .deep-grid,
+    .system-grid,
+    .flow-grid {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .layer-grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .mapping-grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    .deep-grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+    .system-grid { grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); }
+    .flow-grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background: #fff;
+    }
+    .idx {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--brand);
+      letter-spacing: 0.02em;
+      margin-bottom: 4px;
+    }
+    .code {
+      display: inline-block;
+      margin: 2px 4px 2px 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      color: #243447;
+      background: #f4f7fa;
+      border: 1px solid #e1e6eb;
+      border-radius: 6px;
+      padding: 1px 6px;
+    }
+    .good { color: var(--ok); font-weight: 700; }
+    .foot { margin-top: 10px; color: var(--muted); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="panel hero">
+      <h1>CoPaw 技术架构介绍（2026）</h1>
+      <p>
+        这是一份基于 CoPaw 最新源码的架构说明，聚焦当前真实实现：
+        FastAPI 控制面、Runner 会话执行、AgentScope ReAct 内核扩展、Channel 插件化接入、MCP 热更新、Cron/Heartbeat 调度、Skill 与本地模型生态。
+      </p>
+      <div class="meta">
+        <span class="chip">代码基线：CoPaw@cd47a43</span>
+        <span class="chip">更新时间：2026-03-04</span>
+        <span class="chip">范围：CLI + App + Agent + Channels + MCP + Cron</span>
+      </div>
+      <div class="summary">
+        <strong>一句话概括：</strong>
+        CoPaw 是“多渠道接入控制面 + AgentScope ReAct 执行内核 + 可热更新外设（MCP/Channel）+ 调度化运行”的个人 AI 助手平台。
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>多 Agent 支持现状</h2>
+      <p><strong>结论（截至 2026-03-04）：</strong>CoPaw 当前开箱主链路以单 Agent 会话执行为主，<span class="good">产品级多 Agent 仍在 roadmap（Long-term Planning）</span>。</p>
+      <ul>
+        <li>当前主执行模型是 <span class="code">Runner + CoPawAgent(ReAct)</span> 的单会话路径。</li>
+        <li>官方 roadmap 中 <span class="code">Multi-agent</span> 明确标注为 <span class="code">Long-term Planning</span>。</li>
+        <li>因其底座来自 AgentScope，后续具备承接多 Agent 能力的架构基础，但当前产品面未作为已完成能力交付。</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>架构总览与分层</h2>
+      <div class="layer-grid">
+        <article class="card">
+          <div class="idx">Layer A</div>
+          <h3>入口与交互层</h3>
+          <p>CLI 入口、FastAPI 服务、Console SPA、管理 API 与多聊天渠道接入。</p>
+        </article>
+        <article class="card">
+          <div class="idx">Layer B</div>
+          <h3>控制面与编排层</h3>
+          <p>Runner、会话状态、配置热更新、MCP 客户端生命周期、定时任务编排。</p>
+        </article>
+        <article class="card">
+          <div class="idx">Layer C</div>
+          <h3>Agent 执行层</h3>
+          <p>基于 AgentScope ReAct 的 CoPawAgent，负责推理循环、工具调用、命令处理与消息流式输出。</p>
+        </article>
+        <article class="card">
+          <div class="idx">Layer D</div>
+          <h3>能力与策略层</h3>
+          <p>内置工具、Memory 管理、Bootstrap/Compact Hook、Skills 生命周期与系统提示装配。</p>
+        </article>
+        <article class="card">
+          <div class="idx">Layer E</div>
+          <h3>模型与扩展生态层</h3>
+          <p>Provider 注册、本地模型下载管理、Ollama/MLX/llama.cpp 兼容与外部 MCP 生态接入。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>分层与映射视图（为对比 OpenClaw 采用 14 项编号）</h2>
+      <p>
+        <strong>分层</strong>定义依赖方向与责任边界，<strong>子系统</strong>定义具体功能模块。
+        两者是多对一映射：一个层可承载多个子系统，一个子系统也可能跨层协作。
+      </p>
+      <div class="mapping-grid">
+        <article class="card">
+          <div class="idx">Layer A</div>
+          <h3>入口与交互层</h3>
+          <p>
+            <span class="code">01 CLI 与进程入口</span>
+            <span class="code">02 FastAPI 应用内核</span>
+            <span class="code">03 管理 API 与控制台路由</span>
+            <span class="code">10 Channel 插件接入层</span>
+          </p>
+        </article>
+        <article class="card">
+          <div class="idx">Layer B</div>
+          <h3>控制面与编排层</h3>
+          <p>
+            <span class="code">04 Runner 会话执行引擎</span>
+            <span class="code">11 MCP 控制平面</span>
+            <span class="code">12 配置与热更新系统</span>
+            <span class="code">13 Cron/Heartbeat 调度系统</span>
+          </p>
+        </article>
+        <article class="card">
+          <div class="idx">Layer C</div>
+          <h3>Agent 执行层</h3>
+          <p>
+            <span class="code">05 CoPawAgent ReAct 内核</span>
+            <span class="code">06 工具执行层</span>
+          </p>
+        </article>
+        <article class="card">
+          <div class="idx">Layer D</div>
+          <h3>能力与策略层</h3>
+          <p>
+            <span class="code">07 Memory 管理与压缩</span>
+            <span class="code">08 Prompt/Bootstrap 策略层</span>
+            <span class="code">09 Skills 生命周期管理</span>
+            <span class="code">06 工具执行层</span>
+          </p>
+        </article>
+        <article class="card">
+          <div class="idx">Layer E</div>
+          <h3>模型与扩展生态层</h3>
+          <p>
+            <span class="code">14 Provider 与本地模型层</span>
+            <span class="code">11 MCP 控制平面</span>
+            <span class="code">10 Channel 插件接入层（扩展）</span>
+          </p>
+        </article>
+      </div>
+      <p class="foot">说明：这里只是对照编号视图，不代表 CoPaw 必须固定为 14 个独立模块。</p>
+    </section>
+
+    <section class="panel">
+      <h2>与 OpenClaw 子系统对照关系</h2>
+      <p>
+        CoPaw 在产品形态上与 OpenClaw 同属“可接入多渠道的 Agent 控制面”，但协议与实现路径不同。
+        下列映射用于横向对比职责，而非一一同构。
+      </p>
+      <div class="mapping-grid">
+        <article class="card">
+          <div class="idx">OpenClaw 01/02/03/04</div>
+          <h3>Gateway 控制面主链路</h3>
+          <p>
+            对应 CoPaw：
+            <span class="code">02 FastAPI 应用内核</span>
+            <span class="code">03 管理 API</span>
+            <span class="code">04 Runner</span>
+            <span class="code">10 Channel Manager</span>
+          </p>
+        </article>
+
+        <article class="card">
+          <div class="idx">OpenClaw 05/07/08/09</div>
+          <h3>Agent 能力执行链</h3>
+          <p>
+            对应 CoPaw：
+            <span class="code">05 CoPawAgent</span>
+            <span class="code">06 工具执行层</span>
+            <span class="code">07 Memory</span>
+            <span class="code">09 Skills</span>
+          </p>
+        </article>
+
+        <article class="card">
+          <div class="idx">OpenClaw 06</div>
+          <h3>外部 Agent 协议控制面</h3>
+          <p>
+            OpenClaw 是 ACP 控制平面；CoPaw 的近似角色是
+            <span class="code">11 MCP 控制平面</span>。
+            协议不同，但都承担“外部能力/Agent 接入编排”职责。
+          </p>
+        </article>
+
+        <article class="card">
+          <div class="idx">OpenClaw 10/14</div>
+          <h3>多端接入与调度</h3>
+          <p>
+            对应 CoPaw：
+            <span class="code">10 Channel 插件接入层</span>
+            <span class="code">13 Cron/Heartbeat 调度</span>
+            <span class="code">03 Console/API 管理面</span>
+          </p>
+        </article>
+
+        <article class="card">
+          <div class="idx">OpenClaw 11/12/13</div>
+          <h3>安全/沙箱/浏览器差异</h3>
+          <p>
+            CoPaw 内置
+            <span class="code">06 browser_use 工具</span>，
+            但不像 OpenClaw 一样在核心层内建完整 Sandbox 控制面；
+            隔离策略通常由部署方式或外部运行时承担。
+          </p>
+        </article>
+      </div>
+      <p class="foot">结论：CoPaw 与 OpenClaw 在“控制面 + Agent 执行 + 扩展接入”三段式上同构，但外部协议和隔离深度不同。</p>
+    </section>
+
+    <section class="panel">
+      <h2>核心子系统（按真实实现，使用 14 项对照编号）</h2>
+      <div class="system-grid">
+        <article class="card">
+          <div class="idx">01</div>
+          <h3>CLI 与进程入口</h3>
+          <p>命令行入口、子命令分发与默认 API 地址回填，形成统一运维入口。</p>
+          <p><span class="code">src/copaw/__main__.py</span><span class="code">src/copaw/cli/main.py</span><span class="code">src/copaw/cli/app_cmd.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">02</div>
+          <h3>FastAPI 应用内核</h3>
+          <p>负责生命周期编排：Runner、Channel、Cron、Chat、MCP、Watcher 的启动与收敛关闭。</p>
+          <p><span class="code">src/copaw/app/_app.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">03</div>
+          <h3>管理 API 与控制台路由</h3>
+          <p>统一暴露 config/providers/models/skills/mcp/chats/cron 等管理接口，并挂载 Console 静态资源。</p>
+          <p><span class="code">src/copaw/app/routers/__init__.py</span><span class="code">src/copaw/app/runner/api.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">04</div>
+          <h3>Runner 会话执行引擎</h3>
+          <p>按 session/user/channel 构建执行上下文，装配 Agent，流式输出并持久化会话状态。</p>
+          <p><span class="code">src/copaw/app/runner/runner.py</span><span class="code">src/copaw/app/runner/session.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">05</div>
+          <h3>CoPawAgent ReAct 内核</h3>
+          <p>在 AgentScope ReAct 基础上扩展：技能注入、命令处理、MCP 客户端恢复与提示词重建。</p>
+          <p><span class="code">src/copaw/agents/react_agent.py</span><span class="code">src/copaw/agents/command_handler.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">06</div>
+          <h3>工具执行层</h3>
+          <p>提供 shell/file/browser/screenshot/send_file/time 等执行能力，工具输出统一为 ToolResponse。</p>
+          <p><span class="code">src/copaw/agents/tools/shell.py</span><span class="code">src/copaw/agents/tools/browser_control.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">07</div>
+          <h3>Memory 管理与自动压缩</h3>
+          <p>基于 ReMeCopaw 的压缩、摘要、检索机制，支持压缩阈值触发与异步 summary 任务。</p>
+          <p><span class="code">src/copaw/agents/memory/memory_manager.py</span><span class="code">src/copaw/agents/hooks/memory_compaction.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">08</div>
+          <h3>Prompt 与 Bootstrap 策略层</h3>
+          <p>从工作目录构建系统提示，首次交互注入 BOOTSTRAP 引导，形成持续可演化 persona。</p>
+          <p><span class="code">src/copaw/agents/prompt.py</span><span class="code">src/copaw/agents/hooks/bootstrap.py</span><span class="code">src/copaw/agents/md_files/*</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">09</div>
+          <h3>Skills 生命周期管理</h3>
+          <p>管理 builtin/customized/active 技能目录，同步可用技能并注入 Toolkit。</p>
+          <p><span class="code">src/copaw/agents/skills_manager.py</span><span class="code">src/copaw/agents/skills_hub.py</span><span class="code">src/copaw/agents/skills/*</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">10</div>
+          <h3>Channel 插件接入层</h3>
+          <p>抽象多渠道消费接口，支持按 session 合并、防抖、并发 worker 与动态替换。</p>
+          <p><span class="code">src/copaw/app/channels/base.py</span><span class="code">src/copaw/app/channels/manager.py</span><span class="code">src/copaw/app/channels/registry.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">11</div>
+          <h3>MCP 控制平面</h3>
+          <p>管理 stdio/http/sse MCP 客户端生命周期，支持在线替换、失败重试与配置驱动热更新。</p>
+          <p><span class="code">src/copaw/app/mcp/manager.py</span><span class="code">src/copaw/app/mcp/watcher.py</span><span class="code">src/copaw/app/routers/mcp.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">12</div>
+          <h3>配置与热更新系统</h3>
+          <p>Pydantic 配置模型 + watcher 轮询，按差异重载渠道并联动 heartbeat 重调度。</p>
+          <p><span class="code">src/copaw/config/config.py</span><span class="code">src/copaw/config/watcher.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">13</div>
+          <h3>Cron / Heartbeat 调度系统</h3>
+          <p>基于 APScheduler 的任务编排，支持并发上限、状态跟踪与 heartbeat 周期任务。</p>
+          <p><span class="code">src/copaw/app/crons/manager.py</span><span class="code">src/copaw/app/crons/heartbeat.py</span><span class="code">src/copaw/app/crons/executor.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">14</div>
+          <h3>Provider 与本地模型层</h3>
+          <p>统一远端 provider 与本地模型（llama.cpp/MLX/Ollama）创建、注册与下载管理。</p>
+          <p><span class="code">src/copaw/agents/model_factory.py</span><span class="code">src/copaw/providers/registry.py</span><span class="code">src/copaw/local_models/manager.py</span></p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>MCP 控制平面深度解析</h2>
+      <p>
+        CoPaw 的 MCP 不是简单“读取一次配置并连接”，而是一个运行时可持续治理的控制面：
+        <strong>Manager 负责生命周期</strong>，<strong>Watcher 负责差异感知与重载策略</strong>，Runner 每轮请求动态取最新客户端集合。
+      </p>
+      <div class="deep-grid">
+        <article class="card">
+          <div class="idx">MCP-01</div>
+          <h3>职责分离：管理器与监控器</h3>
+          <ul>
+            <li><strong>MCPClientManager：</strong>负责 connect/replace/remove/close_all。</li>
+            <li><strong>MCPConfigWatcher：</strong>负责监听配置变更、触发增量更新。</li>
+          </ul>
+          <p><span class="code">src/copaw/app/mcp/manager.py</span><span class="code">src/copaw/app/mcp/watcher.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">MCP-02</div>
+          <h3>低锁竞争替换策略</h3>
+          <ul>
+            <li>先在锁外连接新 client（可设置超时）。</li>
+            <li>连接成功后再在锁内原子替换并关闭旧连接。</li>
+            <li>避免慢连接阻塞整个管理器。</li>
+          </ul>
+          <p><span class="code">src/copaw/app/mcp/manager.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">MCP-03</div>
+          <h3>失败治理与重试熔断</h3>
+          <ul>
+            <li>Watcher 记录每个 client 的失败次数与配置哈希。</li>
+            <li>同一配置连续失败达到上限后跳过重试，等待配置变更再恢复。</li>
+          </ul>
+          <p><span class="code">src/copaw/app/mcp/watcher.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">MCP-04</div>
+          <h3>Runner 动态取客户端</h3>
+          <ul>
+            <li>每次 query 时从 manager 拉取当前 client 列表。</li>
+            <li>新配置无需重启服务即可在后续对话生效。</li>
+          </ul>
+          <p><span class="code">src/copaw/app/runner/runner.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">MCP-05</div>
+          <h3>Agent 侧注册与断连恢复</h3>
+          <ul>
+            <li>CoPawAgent 注册 MCP 工具时处理连接中断与取消异常。</li>
+            <li>通过 <code>_copaw_rebuild_info</code> 重建 client 并尝试重新连接。</li>
+          </ul>
+          <p><span class="code">src/copaw/agents/react_agent.py</span><span class="code">src/copaw/app/mcp/manager.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">MCP-06</div>
+          <h3>API 管理面与敏感信息保护</h3>
+          <ul>
+            <li>通过 <code>/api/mcp</code> 提供客户端增删改查。</li>
+            <li>env/header 在返回时做掩码处理，降低凭据泄漏风险。</li>
+          </ul>
+          <p><span class="code">src/copaw/app/routers/mcp.py</span></p>
+        </article>
+      </div>
+      <p class="foot">
+        结论：CoPaw 的 MCP 控制平面本质上是“配置驱动的在线连接编排器”，它保证 MCP 生态可以在服务运行中持续演化，而不牺牲主链路稳定性。
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>关键运行链路</h2>
+      <div class="flow-grid">
+        <article class="card">
+          <div class="idx">Flow A</div>
+          <h3>消息处理主链路</h3>
+          <ul>
+            <li>Channel/Console/HTTP 输入进入 Runner。</li>
+            <li>Runner 构建 env_context + 注入 MCP clients + 创建 CoPawAgent。</li>
+            <li>Agent 走 ReAct 循环，流式输出结果并持久化 session/chat。</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <div class="idx">Flow B</div>
+          <h3>渠道并发与防抖链路</h3>
+          <ul>
+            <li>ChannelManager 按 channel 建队列，按 debounce_key 聚合同 session 消息。</li>
+            <li>同 session 串行，跨 session 并行，处理中新增消息进入 pending 合并。</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <div class="idx">Flow C</div>
+          <h3>Cron/Heartbeat 链路</h3>
+          <ul>
+            <li>CronManager 加载任务并注册调度器。</li>
+            <li>触发时经 Executor 调用 Runner 或 Channel 发送任务结果。</li>
+            <li>ConfigWatcher 检测 heartbeat 变更后执行重调度。</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>工程特征</h2>
+      <ul>
+        <li><span class="good">控制面在线化</span>：MCP、Channel、Heartbeat 支持运行中动态调整。</li>
+        <li><span class="good">执行链收敛</span>：统一 Runner + Agent 抽象，减少多入口行为分叉。</li>
+        <li><span class="good">能力可组合</span>：Toolkit + Skills + MCP 形成统一工具扩展面。</li>
+        <li><span class="good">会话可恢复</span>：JSON Session + Chat 元数据可追踪、可重放。</li>
+        <li><span class="good">本地优先可控</span>：本地模型、工作目录、技能目录全部在用户侧自治。</li>
+      </ul>
+      <p class="foot">
+        本文定位为“当前版本源码架构介绍”，后续可继续补充：典型部署拓扑、容量估算与高可用策略。
+      </p>
+    </section>
+  </div>
+</body>
+</html>

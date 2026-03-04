@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentScope 技术架构介绍（2026）</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --text: #142132;
+      --muted: #5b6877;
+      --line: #dbe2ea;
+      --brand: #0a57c9;
+      --brand-soft: #edf4ff;
+      --chip: #eef3f8;
+      --ok: #16794e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background: linear-gradient(180deg, #eaf1fb 0, var(--bg) 240px);
+      line-height: 1.68;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 20px 56px; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.04);
+      padding: 20px 22px;
+      margin-bottom: 14px;
+    }
+    .hero h1 { margin: 0 0 8px; font-size: 30px; line-height: 1.22; }
+    .hero p { margin: 0; color: var(--muted); }
+    .meta { margin-top: 10px; }
+    .chip {
+      display: inline-block;
+      border: 1px solid var(--line);
+      background: var(--chip);
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-size: 12px;
+      margin: 4px 8px 0 0;
+      color: #2a3d51;
+    }
+    h2 { margin: 0 0 10px; font-size: 22px; }
+    h3 { margin: 0 0 8px; font-size: 17px; }
+    p { margin: 8px 0; }
+    ul { margin: 8px 0 0 18px; padding: 0; }
+
+    .summary {
+      margin-top: 12px;
+      border-left: 4px solid var(--brand);
+      background: var(--brand-soft);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+
+    .layer-grid,
+    .mapping-grid,
+    .deep-grid,
+    .system-grid,
+    .flow-grid {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .layer-grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .mapping-grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+    .deep-grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+    .system-grid { grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); }
+    .flow-grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background: #fff;
+    }
+    .idx {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--brand);
+      letter-spacing: 0.02em;
+      margin-bottom: 4px;
+    }
+    .code {
+      display: inline-block;
+      margin: 2px 4px 2px 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      color: #243447;
+      background: #f4f7fa;
+      border: 1px solid #e1e6eb;
+      border-radius: 6px;
+      padding: 1px 6px;
+    }
+    .good { color: var(--ok); font-weight: 700; }
+    .foot { margin-top: 10px; color: var(--muted); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="panel hero">
+      <h1>AgentScope 技术架构介绍（2026）</h1>
+      <p>
+        本文基于 AgentScope 最新源码，按“运行时基础 → Agent 核心执行 → 协议/生态扩展 → 工程闭环”拆解核心架构，
+        聚焦 ReAct 主链路、Tool/MCP/A2A 接口、Memory/RAG、Realtime/TTS、多 Agent 编排与评测调优体系。
+      </p>
+      <div class="meta">
+        <span class="chip">代码基线：agentscope@28cfb99</span>
+        <span class="chip">更新时间：2026-03-04</span>
+        <span class="chip">范围：Core SDK + Integrations + Evaluate + Tuner</span>
+      </div>
+      <div class="summary">
+        <strong>一句话概括：</strong>
+        AgentScope 是“以 ReAct 运行时为中心、以协议适配和工程闭环为两翼”的通用 Agent SDK，不是单体网关，而是可嵌入任意业务应用的执行框架。
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>多 Agent 支持现状</h2>
+      <p><strong>结论（截至 2026-03-04）：</strong><span class="good">已支持且为当前能力</span>，不是 roadmap。</p>
+      <ul>
+        <li>框架内置 <span class="code">MsgHub + Pipeline</span>，可做多 Agent 编排与消息路由。</li>
+        <li>官方样例已覆盖 <span class="code">multiagent_conversation</span>、<span class="code">multiagent_debate</span>、<span class="code">multiagent_concurrent</span>、<span class="code">multiagent_realtime</span>。</li>
+        <li>支持 <span class="code">A2A</span> 协议，可做跨 Agent 协作与对接。</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>架构总览与分层</h2>
+      <div class="layer-grid">
+        <article class="card">
+          <div class="idx">Layer A</div>
+          <h3>运行时基础层</h3>
+          <p>全局 run context、StateModule、Session 存储与可序列化状态边界。</p>
+        </article>
+        <article class="card">
+          <div class="idx">Layer B</div>
+          <h3>Agent 执行核心层</h3>
+          <p>AgentBase/ReAct、Model/Formatter、Toolkit、Memory、PlanNotebook 形成主执行回路。</p>
+        </article>
+        <article class="card">
+          <div class="idx">Layer C</div>
+          <h3>扩展协作层</h3>
+          <p>RAG、MCP、A2A、Pipeline、Realtime/TTS 负责跨系统互联与多模态交互。</p>
+        </article>
+        <article class="card">
+          <div class="idx">Layer D</div>
+          <h3>工程闭环层</h3>
+          <p>Tracing、Evaluate、Tuner 构成可观测、可评估、可优化的持续迭代闭环。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>与 OpenClaw 14 子系统对照映射</h2>
+      <p>
+        AgentScope 并不内置完整“网关产品层”，但可以映射到 OpenClaw 的职责模型。
+        下表按职责近似对齐，便于横向比较（不是一一同构）。
+      </p>
+      <div class="mapping-grid">
+        <article class="card">
+          <div class="idx">OpenClaw 01/02/03/04</div>
+          <h3>网关与控制面能力</h3>
+          <p>
+            对应 AgentScope 的运行时基础与执行编排：
+            <span class="code">A01 运行上下文</span>
+            <span class="code">A02 状态与会话</span>
+            <span class="code">A04 ReAct 执行循环</span>
+            <span class="code">A11 Pipeline 编排</span>
+          </p>
+        </article>
+
+        <article class="card">
+          <div class="idx">OpenClaw 05/07/08/09</div>
+          <h3>Agent 能力主链路</h3>
+          <p>
+            与 AgentScope 主核高度对应：
+            <span class="code">A04 ReAct 引擎</span>
+            <span class="code">A07 Toolkit/Tool/Skill</span>
+            <span class="code">A08 Memory</span>
+            <span class="code">A10 RAG</span>
+          </p>
+        </article>
+
+        <article class="card">
+          <div class="idx">OpenClaw 06</div>
+          <h3>外部 Agent 协议协作</h3>
+          <p>
+            AgentScope 侧的近似能力是：
+            <span class="code">A11 MCP 集成</span>
+            <span class="code">A12 A2A 协议</span>
+            角色更偏 SDK 协议客户端，而非网关级 ACP 控制面。
+          </p>
+        </article>
+
+        <article class="card">
+          <div class="idx">OpenClaw 10/13/14</div>
+          <h3>多端与实时协作</h3>
+          <p>
+            AgentScope 通过
+            <span class="code">A11 Pipeline</span>
+            <span class="code">A13 Realtime/TTS</span>
+            支持实时与多 Agent 协作；
+            Channel 网关、Node Host 这类产品层通常由上层应用实现。
+          </p>
+        </article>
+
+        <article class="card">
+          <div class="idx">OpenClaw 11/12</div>
+          <h3>安全与隔离</h3>
+          <p>
+            AgentScope 提供工具 schema 与执行边界，但不内建 Docker Sandbox 控制面。
+            安全策略通常下沉到 Runtime/部署平台或业务应用层。
+          </p>
+        </article>
+      </div>
+      <p class="foot">说明：上面是“职责映射”，不是“代码结构映射”。AgentScope 是框架层，OpenClaw 是产品控制面层。</p>
+    </section>
+
+    <section class="panel">
+      <h2>核心子系统（按实际实现归并）</h2>
+      <div class="system-grid">
+        <article class="card">
+          <div class="idx">A01</div>
+          <h3>运行初始化与上下文</h3>
+          <p>维护 run_id/project/name/trace_enabled，上下文通过 ContextVar 隔离线程与协程。</p>
+          <p><span class="code">src/agentscope/__init__.py</span><span class="code">src/agentscope/_run_config.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">A02</div>
+          <h3>StateModule 与状态序列化内核</h3>
+          <p>支持嵌套 StateModule、可注册属性状态、定制 JSON 序列化/反序列化。</p>
+          <p><span class="code">src/agentscope/module/_state_module.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">A03</div>
+          <h3>Session 持久化层</h3>
+          <p>提供 JSONSession 与 RedisSession 两种会话后端，统一 save/load 接口。</p>
+          <p><span class="code">src/agentscope/session/_json_session.py</span><span class="code">src/agentscope/session/_redis_session.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">A04</div>
+          <h3>AgentBase 与 Hook 元框架</h3>
+          <p>定义 reply/observe/print 抽象及 pre/post 钩子体系，为 ReAct 等上层 Agent 提供可插拔生命周期。</p>
+          <p><span class="code">src/agentscope/agent/_agent_base.py</span><span class="code">src/agentscope/agent/_react_agent_base.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">A05</div>
+          <h3>ReAct 执行引擎</h3>
+          <p>核心循环包括 memory 记录、检索增强、reasoning/acting、structured output 与 fallback summarizing。</p>
+          <p><span class="code">src/agentscope/agent/_react_agent.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">A06</div>
+          <h3>Model Provider 适配层</h3>
+          <p>统一 ChatModelBase 抽象，适配 OpenAI/Anthropic/Gemini/Ollama 等提供方。</p>
+          <p><span class="code">src/agentscope/model/_model_base.py</span><span class="code">src/agentscope/model/_openai_model.py</span><span class="code">src/agentscope/model/_anthropic_model.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">A07</div>
+          <h3>Formatter 协议转换层</h3>
+          <p>将 Msg/ContentBlock 转换成不同 LLM API 所需协议，并支持 token 截断策略。</p>
+          <p><span class="code">src/agentscope/formatter/_formatter_base.py</span><span class="code">src/agentscope/formatter/_truncated_formatter_base.py</span><span class="code">src/agentscope/formatter/_openai_formatter.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">A08</div>
+          <h3>Toolkit / Tool / Skill 执行层</h3>
+          <p>负责 tool 注册、分组激活、JSON schema 扩展、工具流式执行与 agent skill 提示注入。</p>
+          <p><span class="code">src/agentscope/tool/_toolkit.py</span><span class="code">src/agentscope/tool/_types.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">A09</div>
+          <h3>Memory 双层体系</h3>
+          <p>工作记忆（InMemory/Redis/SQLAlchemy）+ 长期记忆（Mem0/ReMe）协同支持检索与压缩摘要。</p>
+          <p><span class="code">src/agentscope/memory/_working_memory/*</span><span class="code">src/agentscope/memory/_long_term_memory/*</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">A10</div>
+          <h3>Plan Notebook 任务分解层</h3>
+          <p>把复杂任务拆成子任务计划，向 ReAct 注入系统提示与计划工具（create/update/finish）。</p>
+          <p><span class="code">src/agentscope/plan/_plan_notebook.py</span><span class="code">src/agentscope/plan/_plan_model.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">A11</div>
+          <h3>RAG + MCP + Pipeline 协作层</h3>
+          <p>RAG 检索、MCP tool bridge、多 Agent pipeline/msghub/chat-room 在这一层汇合。</p>
+          <p><span class="code">src/agentscope/rag/*</span><span class="code">src/agentscope/mcp/*</span><span class="code">src/agentscope/pipeline/*</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">A12</div>
+          <h3>Realtime / TTS / A2A / 工程闭环层</h3>
+          <p>实时语音、A2A 协议互联，以及 tracing/evaluate/tuner 的可观测与优化链路。</p>
+          <p><span class="code">src/agentscope/realtime/*</span><span class="code">src/agentscope/tts/*</span><span class="code">src/agentscope/agent/_a2a_agent.py</span><span class="code">src/agentscope/tracing/*</span><span class="code">src/agentscope/evaluate/*</span><span class="code">src/agentscope/tuner/*</span></p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>ReAct 执行内核深度解析</h2>
+      <p>
+        AgentScope 的核心增量不在“固定工作流 DSL”，而在可扩展 ReAct 主循环：
+        把工具调用、计划、记忆、结构化输出与多模态输出融合到同一个 reply 状态机中。
+      </p>
+      <div class="deep-grid">
+        <article class="card">
+          <div class="idx">ReAct-01</div>
+          <h3>输入阶段：先写记忆再执行</h3>
+          <ul>
+            <li>reply 开始就把输入消息写入 working memory。</li>
+            <li>随后触发长期记忆检索与知识检索增强。</li>
+          </ul>
+          <p><span class="code">src/agentscope/agent/_react_agent.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">ReAct-02</div>
+          <h3>结构化输出模式是“工具化约束”</h3>
+          <ul>
+            <li>当传入 structured_model 时，动态注册 <code>generate_response</code> 工具。</li>
+            <li>通过 <code>tool_choice="required"</code> 强制模型走结构化产出路径。</li>
+          </ul>
+          <p><span class="code">src/agentscope/agent/_react_agent.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">ReAct-03</div>
+          <h3>循环核心：reasoning → acting</h3>
+          <ul>
+            <li>每轮先 reasoning 产出文本/工具调用，再 acting 执行工具。</li>
+            <li>支持顺序执行与并行执行（parallel_tool_calls）。</li>
+          </ul>
+          <p><span class="code">src/agentscope/agent/_react_agent.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">ReAct-04</div>
+          <h3>Reasoning 内部整合 Plan 与 TTS</h3>
+          <ul>
+            <li>PlanNotebook 可先注入系统提示，指导下一步动作。</li>
+            <li>模型输出支持流式 print，并可对接 TTS 流式合成。</li>
+          </ul>
+          <p><span class="code">src/agentscope/plan/_plan_notebook.py</span><span class="code">src/agentscope/agent/_react_agent.py</span><span class="code">src/agentscope/tts/_tts_base.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">ReAct-05</div>
+          <h3>Acting 阶段统一为 ToolResponse 流</h3>
+          <ul>
+            <li>Toolkit 调用返回统一流式 ToolResponse。</li>
+            <li>每个 chunk 都可即时打印并回写 memory。</li>
+          </ul>
+          <p><span class="code">src/agentscope/tool/_toolkit.py</span><span class="code">src/agentscope/agent/_react_agent.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">ReAct-06</div>
+          <h3>记忆压缩与异常回退</h3>
+          <ul>
+            <li>当迭代超过阈值或上下文过大，可触发压缩策略。</li>
+            <li>达到 max_iters 仍无最终答复时，进入 summarizing fallback。</li>
+          </ul>
+          <p><span class="code">src/agentscope/agent/_react_agent.py</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">ReAct-07</div>
+          <h3>静态长期记忆回写</h3>
+          <ul>
+            <li>在 static_control/both 模式下，reply 结束后将会话回写 long-term memory。</li>
+            <li>形成“执行后沉淀”的记忆闭环。</li>
+          </ul>
+          <p><span class="code">src/agentscope/agent/_react_agent.py</span><span class="code">src/agentscope/memory/_long_term_memory/_long_term_memory_base.py</span></p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>关键运行链路</h2>
+      <div class="flow-grid">
+        <article class="card">
+          <div class="idx">Flow A</div>
+          <h3>单轮 ReAct 主链路</h3>
+          <ul>
+            <li>输入入库（working memory）→ 长期记忆与知识检索。</li>
+            <li>Formatter 组装 prompt → Model 产出。</li>
+            <li>Toolkit 执行工具并回灌 memory，直到生成最终回复。</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <div class="idx">Flow B</div>
+          <h3>MCP 工具桥接链路</h3>
+          <ul>
+            <li>MCP Client 获取 remote tools。</li>
+            <li>Toolkit 注册为本地可调用函数并暴露 schema 给模型。</li>
+            <li>模型通过 tool_use 触发调用并接收 tool_result。</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <div class="idx">Flow C</div>
+          <h3>工程闭环链路</h3>
+          <ul>
+            <li>Tracing 装饰器在 agent/model/tool/formatter 上打点。</li>
+            <li>Evaluate 对 benchmark/task/metric 聚合结果。</li>
+            <li>Tuner 将 workflow/judge/dataset 转为训练配置进行优化。</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>工程特征</h2>
+      <ul>
+        <li><span class="good">以执行循环为中心</span>：ReAct 是统一主路径，功能通过参数与组件扩展，不靠分裂 runtime。</li>
+        <li><span class="good">协议适配优先</span>：Model/Formatter/MCP/A2A 都走抽象层，降低厂商耦合。</li>
+        <li><span class="good">状态可迁移</span>：StateModule + Session 让 agent 运行态具备持久化与恢复能力。</li>
+        <li><span class="good">多模态和实时并行推进</span>：Realtime、TTS、Pipeline 与传统文本 Agent 共存。</li>
+        <li><span class="good">可观测可评测可调优</span>：Tracing + Evaluate + Tuner 构成长期演进基础设施。</li>
+      </ul>
+      <p class="foot">
+        本文定位为“当前版本源码架构介绍”，适合作为与 OpenClaw / CoPaw 做横向能力对照的框架基线。
+      </p>
+    </section>
+  </div>
+</body>
+</html>

@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpenClaw 技术架构介绍（2026）</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --text: #142132;
+      --muted: #5b6877;
+      --line: #dbe2ea;
+      --brand: #0a57c9;
+      --brand-soft: #edf4ff;
+      --chip: #eef3f8;
+      --ok: #16794e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background: linear-gradient(180deg, #eaf1fb 0, var(--bg) 240px);
+      line-height: 1.68;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 20px 56px; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.04);
+      padding: 20px 22px;
+      margin-bottom: 14px;
+    }
+    .hero h1 { margin: 0 0 8px; font-size: 30px; line-height: 1.22; }
+    .hero p { margin: 0; color: var(--muted); }
+    .meta { margin-top: 10px; }
+    .chip {
+      display: inline-block;
+      border: 1px solid var(--line);
+      background: var(--chip);
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-size: 12px;
+      margin: 4px 8px 0 0;
+      color: #2a3d51;
+    }
+    h2 { margin: 0 0 10px; font-size: 22px; }
+    h3 { margin: 0 0 8px; font-size: 17px; }
+    p { margin: 8px 0; }
+    ul { margin: 8px 0 0 18px; padding: 0; }
+
+    .summary {
+      margin-top: 12px;
+      border-left: 4px solid var(--brand);
+      background: var(--brand-soft);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+
+    .layer-grid,
+    .mapping-grid,
+    .acp-grid,
+    .system-grid,
+    .flow-grid {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .layer-grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .mapping-grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    .acp-grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+    .system-grid { grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); }
+    .flow-grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background: #fff;
+    }
+    .idx {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--brand);
+      letter-spacing: 0.02em;
+      margin-bottom: 4px;
+    }
+    .code {
+      display: inline-block;
+      margin: 2px 4px 2px 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      color: #243447;
+      background: #f4f7fa;
+      border: 1px solid #e1e6eb;
+      border-radius: 6px;
+      padding: 1px 6px;
+    }
+    .good { color: var(--ok); font-weight: 700; }
+    .foot { margin-top: 10px; color: var(--muted); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="panel hero">
+      <h1>OpenClaw 技术架构介绍（2026）</h1>
+      <p>
+        这是一份基于 OpenClaw 最新源码的架构说明，聚焦系统当前的真实实现：
+        网关控制面、Agent 双运行时、工具策略管线、记忆系统、通道插件化、Sandbox 隔离、Browser 自动化、Node/Device 能力与多端体验。
+      </p>
+      <div class="meta">
+        <span class="chip">代码基线：openclaw@ad9ceafec</span>
+        <span class="chip">更新时间：2026-03-04</span>
+        <span class="chip">范围：Gateway + Runtime + Extensions + Apps</span>
+      </div>
+      <div class="summary">
+        <strong>一句话概括：</strong>
+        OpenClaw 已从“单一聊天网关”演进为“多入口控制平面 + 双 Agent 运行时 + 插件生态 + 多端节点能力网络”的完整平台架构。
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>多 Agent 支持现状</h2>
+      <p><strong>结论（截至 2026-03-04）：</strong><span class="good">已支持且为当前能力</span>，不是 roadmap。</p>
+      <ul>
+        <li>支持按渠道/账号/会话进行多 Agent 路由与隔离（workspace + session 维度）。</li>
+        <li>主链路同时包含 <span class="code">Embedded Pi Runtime</span> 与 <span class="code">ACP Runtime</span>，支持跨会话协同与子 Agent 编排。</li>
+        <li>具备 Agent-to-Agent 会话工具能力（如 sessions 系列工具），可在不同 Agent 会话间传递任务与上下文。</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>架构总览与分层</h2>
+      <div class="layer-grid">
+        <article class="card">
+          <div class="idx">Layer A</div>
+          <h3>入口与交互层</h3>
+          <p>WebSocket RPC、HTTP API（OpenAI/OpenResponses）、Control UI、WebChat、Canvas/A2UI、CLI、多端 App。</p>
+        </article>
+        <article class="card">
+          <div class="idx">Layer B</div>
+          <h3>控制面与路由层</h3>
+          <p>协议校验、方法权限、会话路由、并发 lane 调度、事件分发、健康与状态管理。</p>
+        </article>
+        <article class="card">
+          <div class="idx">Layer C</div>
+          <h3>Agent 执行层</h3>
+          <p>Embedded Pi Runtime（主路径）+ ACP Runtime（控制面会话），共同驱动自动回复与编排执行。</p>
+        </article>
+        <article class="card">
+          <div class="idx">Layer D</div>
+          <h3>能力与安全层</h3>
+          <p>Tool Pipeline、Memory、Skills、Sandbox、Browser、DM/Group Policy、Secrets、安全审计与修复。</p>
+        </article>
+        <article class="card">
+          <div class="idx">Layer E</div>
+          <h3>扩展与节点层</h3>
+          <p>插件运行时（channel/provider/tool/hook/http/service）、Node Host、设备配对与远程能力调用。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>分层与 14 子系统对应关系</h2>
+      <p>
+        <strong>分层</strong>定义系统职责边界与依赖方向，<strong>子系统</strong>定义具体能力模块。
+        两者是多对一关系：一个层可包含多个子系统，一个子系统也可能跨层协作。
+      </p>
+      <div class="mapping-grid">
+        <article class="card">
+          <div class="idx">Layer A</div>
+          <h3>入口与交互层</h3>
+          <p>
+            <span class="code">01 Gateway 服务内核</span>
+            <span class="code">10 Channel 插件化适配层</span>
+            <span class="code">13 Browser 自动化子系统</span>
+            <span class="code">14 调度、节点与多端体验层</span>
+          </p>
+        </article>
+        <article class="card">
+          <div class="idx">Layer B</div>
+          <h3>控制面与路由层</h3>
+          <p>
+            <span class="code">02 协议与方法控制面</span>
+            <span class="code">03 会话路由与命名空间</span>
+            <span class="code">04 并发调度与队列系统</span>
+            <span class="code">11 安全与访问控制层</span>
+          </p>
+        </article>
+        <article class="card">
+          <div class="idx">Layer C</div>
+          <h3>Agent 执行层</h3>
+          <p>
+            <span class="code">05 Embedded Pi Runtime</span>
+            <span class="code">06 ACP Runtime 控制平面</span>
+          </p>
+        </article>
+        <article class="card">
+          <div class="idx">Layer D</div>
+          <h3>能力与安全层</h3>
+          <p>
+            <span class="code">07 Tool 执行与策略管线</span>
+            <span class="code">08 Memory 检索与持久记忆</span>
+            <span class="code">09 Skills 生命周期管理</span>
+            <span class="code">11 安全与访问控制层</span>
+            <span class="code">12 Sandbox 隔离执行层</span>
+            <span class="code">13 Browser 自动化子系统</span>
+          </p>
+        </article>
+        <article class="card">
+          <div class="idx">Layer E</div>
+          <h3>扩展与节点层</h3>
+          <p>
+            <span class="code">10 Channel 插件化适配层</span>
+            <span class="code">14 调度、节点与多端体验层</span>
+            <span class="code">06 ACP Runtime 控制平面（扩展后端）</span>
+          </p>
+        </article>
+      </div>
+      <p class="foot">
+        说明：上面是“主归属”映射，不是互斥划分。像 11/13/14 这类系统天然跨层。
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>14 个核心子系统</h2>
+      <div class="system-grid">
+        <article class="card">
+          <div class="idx">01</div>
+          <h3>Gateway 服务内核</h3>
+          <p>统一承载 WS 与 HTTP 服务、生命周期管理、启动编排、子系统挂载。</p>
+          <p><span class="code">src/gateway/server.impl.ts</span><span class="code">src/gateway/server-http.ts</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">02</div>
+          <h3>协议与方法控制面</h3>
+          <p>基于 TypeBox/AJV 的协议契约、请求分发、角色与 scope 授权、控制面限流。</p>
+          <p><span class="code">src/gateway/protocol/index.ts</span><span class="code">src/gateway/server-methods.ts</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">03</div>
+          <h3>会话路由与命名空间</h3>
+          <p>Session key 编码 agent/channel/group/thread 语义，形成跨模块统一的路由和隔离边界。</p>
+          <p><span class="code">src/routing/session-key.ts</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">04</div>
+          <h3>并发调度与队列系统</h3>
+          <p>lane 队列支持 main/cron/subagent/nested 与 session lane，配合 interrupt/followup/steer 等模式。</p>
+          <p><span class="code">src/process/command-queue.ts</span><span class="code">src/auto-reply/reply/get-reply-run.ts</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">05</div>
+          <h3>Embedded Pi Runtime</h3>
+          <p>默认 Agent 执行路径，负责模型选择、上下文压缩、工具调用、失败切换与响应产出。</p>
+          <p><span class="code">src/agents/pi-embedded-runner/run.ts</span><span class="code">src/agents/pi-embedded-runner/compact.ts</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">06</div>
+          <h3>ACP Runtime 控制平面</h3>
+          <p>AcpSessionManager + actor 串行队列 + runtime backend registry，统一管理 ACP 会话状态，并通过 acpx 等后端在宿主机驱动外部 Agent。</p>
+          <p><span class="code">src/acp/control-plane/manager.core.ts</span><span class="code">src/acp/runtime/registry.ts</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">07</div>
+          <h3>Tool 执行与策略管线</h3>
+          <p>统一工具装配、owner-only/allowlist/denylist、group 与 sandbox 策略叠加，支持 hook 前置拦截。</p>
+          <p><span class="code">src/agents/pi-tools.ts</span><span class="code">src/agents/tool-policy.ts</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">08</div>
+          <h3>Memory 检索与持久记忆</h3>
+          <p>内建索引与 QMD 双后端、混合检索、MEMORY.md 与 memory/*、压缩前 memory flush。</p>
+          <p><span class="code">src/memory/index.ts</span><span class="code">src/memory/manager.ts</span><span class="code">src/auto-reply/reply/memory-flush.ts</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">09</div>
+          <h3>Skills 生命周期管理</h3>
+          <p>工作区/托管/内置/插件技能统一发现、watch、快照与注入，控制提示词体积与可见性。</p>
+          <p><span class="code">src/agents/skills/workspace.ts</span><span class="code">src/agents/skills/refresh.ts</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">10</div>
+          <h3>Channel 插件化适配层</h3>
+          <p>通过 dock + plugin registry 抽象多渠道能力、threading、mention、群组策略与配置适配。</p>
+          <p><span class="code">src/channels/dock.ts</span><span class="code">src/channels/plugins/index.ts</span><span class="code">extensions/*</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">11</div>
+          <h3>安全与访问控制层</h3>
+          <p>Gateway 鉴权、DM/Group policy、Secrets 运行时快照、安全审计与自动修复组成纵深防御。</p>
+          <p><span class="code">src/gateway/auth.ts</span><span class="code">src/security/dm-policy-shared.ts</span><span class="code">src/security/audit.ts</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">12</div>
+          <h3>Sandbox 隔离执行层</h3>
+          <p>Docker 沙箱 + browser container，控制 workspace 访问、网络模式、capabilities 与安全约束。</p>
+          <p><span class="code">src/agents/sandbox/config.ts</span><span class="code">src/agents/sandbox/runtime-status.ts</span><span class="code">src/agents/sandbox/docker.ts</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">13</div>
+          <h3>Browser 自动化子系统</h3>
+          <p>Browser control server、CDP/Playwright、profile 管理与扩展 relay，支撑 agent.act/snapshot 等动作。</p>
+          <p><span class="code">src/browser/server.ts</span><span class="code">src/browser/config.ts</span><span class="code">src/browser/pw-tools-core.ts</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">14</div>
+          <h3>调度、节点与多端体验层</h3>
+          <p>Cron/Heartbeat、Node Registry/Node Host、Control UI/Canvas、iOS/macOS/Android 共同构成运行体验闭环。</p>
+          <p><span class="code">src/cron/service.ts</span><span class="code">src/infra/heartbeat-runner.ts</span><span class="code">src/gateway/node-registry.ts</span><span class="code">apps/*</span></p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>ACP 控制平面深度解析</h2>
+      <p>
+        在 OpenClaw 中，ACP 不是单一模块，而是两条协同路径：
+        <strong>协议桥接路径</strong>（IDE/客户端 ↔ Gateway）和
+        <strong>运行时控制路径</strong>（Gateway ↔ 外部 ACP Runtime Backend）。
+      </p>
+      <div class="acp-grid">
+        <article class="card">
+          <div class="idx">ACP-01</div>
+          <h3>协议定位：Bridge 与 Runtime 双路径</h3>
+          <ul>
+            <li><strong>Bridge 路径：</strong><code>openclaw acp</code> 通过 ACP stdio 协议接 IDE，再用 WebSocket 转发到 Gateway。</li>
+            <li><strong>Runtime 路径：</strong><code>/acp spawn</code> 或 <code>sessions_spawn(runtime="acp")</code> 由 Gateway 调度外部 ACP 兼容 Agent。</li>
+          </ul>
+          <p><span class="code">src/acp/server.ts</span><span class="code">src/acp/translator.ts</span><span class="code">src/agents/acp-spawn.ts</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">ACP-02</div>
+          <h3>控制面与后端分离</h3>
+          <ul>
+            <li><strong>控制面（Gateway 内）：</strong>会话元数据、状态机（idle/running/error）、生命周期（init/run/cancel/close）、策略与路由。</li>
+            <li><strong>后端执行层（插件）：</strong>运行时后端通过 registry 注册（默认 acpx），实际执行由后端实现。</li>
+            <li><strong>acpx 实现：</strong>插件服务注册 backend，运行时通过宿主机命令调用外部 CLI。</li>
+          </ul>
+          <p><span class="code">src/acp/control-plane/manager.core.ts</span><span class="code">src/acp/runtime/registry.ts</span><span class="code">extensions/acpx/src/service.ts</span><span class="code">extensions/acpx/src/runtime.ts</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">ACP-03</div>
+          <h3>串行化编排：Session Actor Queue</h3>
+          <ul>
+            <li>按 <code>sessionKey</code> 归一化为 actor key，所有 turn/cancel/close 操作进入同一串行队列。</li>
+            <li>并发治理包含：活跃 turn 注册、AbortController 取消、队列深度统计。</li>
+            <li>配合 runtime cache + TTL 驱逐 + maxConcurrentSessions，避免会话无限堆积。</li>
+          </ul>
+          <p><span class="code">src/acp/control-plane/session-actor-queue.ts</span><span class="code">src/acp/control-plane/runtime-cache.ts</span><span class="code">src/acp/control-plane/manager.core.ts</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">ACP-04</div>
+          <h3>线程绑定与消息路由</h3>
+          <ul>
+            <li>spawn 请求可触发 thread binding：先校验 channel/account 策略，再绑定 conversation 到 ACP session。</li>
+            <li>绑定成功后，后续线程消息进入同一 ACP 会话，输出也回投该线程。</li>
+            <li>spawn 失败、手动 close 时会执行 unbind 清理，避免悬挂绑定。</li>
+          </ul>
+          <p><span class="code">src/agents/acp-spawn.ts</span><span class="code">src/auto-reply/reply/dispatch-acp.ts</span><span class="code">src/acp/control-plane/spawn.ts</span><span class="code">src/channels/thread-bindings-policy.ts</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">ACP-05</div>
+          <h3>能力协商与运行时选项下发</h3>
+          <ul>
+            <li>控制面先读取 backend capabilities，再决定是否允许 <code>session/set_mode</code> 与 <code>session/set_config_option</code>。</li>
+            <li>会话 runtimeOptions 持久化后，在 turn 前下发到后端并做签名去重，避免重复配置调用。</li>
+            <li>标准映射：<code>model</code>、<code>approval_policy</code>、<code>timeout</code>、<code>cwd</code> 与 backend extras。</li>
+          </ul>
+          <p><span class="code">src/acp/control-plane/manager.runtime-controls.ts</span><span class="code">src/acp/control-plane/runtime-options.ts</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">ACP-06</div>
+          <h3>身份对齐与可观测性</h3>
+          <ul>
+            <li>会话 identity 采用 <code>pending/resolved</code> 状态，从 ensure/status 合并外部 session identifiers。</li>
+            <li>Gateway 启动时会对 pending 身份执行 reconcile，降低重启后的会话漂移。</li>
+            <li>内置观测快照：active sessions、queue depth、latency、error code 分布。</li>
+          </ul>
+          <p><span class="code">src/acp/runtime/session-identity.ts</span><span class="code">src/acp/control-plane/manager.identity-reconcile.ts</span><span class="code">src/gateway/server-startup.ts</span></p>
+        </article>
+
+        <article class="card">
+          <div class="idx">ACP-07</div>
+          <h3>安全边界：Host 与 Sandbox 的明确分界</h3>
+          <ul>
+            <li>ACP runtime 默认在宿主机侧执行（后端进程/CLI 路径），不在 OpenClaw Docker sandbox 内部运行。</li>
+            <li>沙箱会话禁止发起 runtime=acp 的 spawn；<code>sandbox="require"</code> 对 ACP 也会被拒绝。</li>
+            <li>策略闸门包括 <code>acp.enabled</code>、<code>acp.dispatch.enabled</code>、allowedAgents，以及高危 ACP tool 显式审批。</li>
+          </ul>
+          <p><span class="code">src/agents/acp-spawn.ts</span><span class="code">src/acp/policy.ts</span><span class="code">src/security/dangerous-tools.ts</span><span class="code">src/acp/client.ts</span></p>
+        </article>
+      </div>
+      <p class="foot">
+        结论：OpenClaw 的 ACP 控制平面本质上是“Gateway 主导的会话控制面 + 可插拔后端执行面”。
+        它并不与 Embedded Pi 竞争，而是为外部 ACP Agent 提供统一的会话编排、线程路由与安全治理能力。
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>关键运行链路</h2>
+      <div class="flow-grid">
+        <article class="card">
+          <div class="idx">Flow A</div>
+          <h3>消息处理主链路</h3>
+          <ul>
+            <li>Channel/Webhook/WS 输入进入 Gateway。</li>
+            <li>会话键解析 + policy 检查 + queue 模式决策。</li>
+            <li>进入 Embedded Pi 或 ACP runtime 执行。</li>
+            <li>tool/memory/skills 协同后输出，回写会话与下行通道。</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <div class="idx">Flow B</div>
+          <h3>定时与心跳链路</h3>
+          <ul>
+            <li>CronService 根据调度触发 isolated/main 会话执行。</li>
+            <li>Heartbeat wake 采用合并与重试，避免高频抖动。</li>
+            <li>结果可走 announce、channel 或 webhook 递送。</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <div class="idx">Flow C</div>
+          <h3>节点能力调用链路</h3>
+          <ul>
+            <li>Gateway 维护 Node Registry 与订阅关系。</li>
+            <li>node.invoke.request 下发到 Node Host。</li>
+            <li>Node Host 按执行策略返回 invoke.result 并回灌会话事件。</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>工程特征</h2>
+      <ul>
+        <li><span class="good">协议先行</span>：schema 驱动 + 统一错误模型，降低跨端实现偏差。</li>
+        <li><span class="good">策略内建</span>：权限、沙箱、队列、审计并非外挂，而是主路径组成部分。</li>
+        <li><span class="good">运行时双轨</span>：Embedded Pi 与 ACP 并存，兼顾稳定默认路径与可编排扩展能力。</li>
+        <li><span class="good">插件优先扩展</span>：渠道、工具、provider、服务都可插件化接入。</li>
+        <li><span class="good">端到端闭环</span>：从 Gateway 到 Node/App/UI 的能力是连续系统，不是孤立模块。</li>
+      </ul>
+      <p class="foot">
+        本文定位为“当前版本架构介绍”，后续可在此基础上继续补充：模块时序图、关键配置模板、典型部署拓扑与容量规划建议。
+      </p>
+    </section>
+  </div>
+</body>
+</html>
