@@ -139,7 +139,7 @@
                 <li>多智能体与 Skills 生态优先：<code>AgentScope（或 CoPaw 仅作参考实现）</code></li>
             </ul>
         </li>
-        <li>OpenClaw 仅建议用于 PoC/创新实验、个人助手类场景，不建议直接用于企业生产自动化主链路。</li>
+        <li>OpenClaw / Nanoclaw 仅建议用于 PoC/创新实验、个人助手类场景，不建议直接用于企业生产自动化主链路。</li>
     </ol>
 
     <h2>二、项目背景与约束</h2>
@@ -330,6 +330,19 @@
                     <td><strong>适合有人值守/开发辅助；不建议直接做无人值守后台主底座</strong></td>
                 </tr>
                 <tr>
+                    <td><strong>Nanoclaw</strong></td>
+                    <td>基于 Claude Code/Agent SDK 的云端容器化个人助手</td>
+                    <td>中（默认代码执行型，但有容器隔离与工作区权限收敛）</td>
+                    <td>很高</td>
+                    <td>中（18.1k⭐，增长快）</td>
+                    <td>MIT</td>
+                    <td>支持（Claude Skills）</td>
+                    <td>支持（继承 Claude Code/Agent SDK 生态）</td>
+                    <td>中（偏个人助手，团队编排需二次设计）</td>
+                    <td>是（默认代码执行型能力）</td>
+                    <td><strong>适合个人效率/有人值守场景；不建议直接做企业无人值守主底座</strong></td>
+                </tr>
+                <tr>
                     <td><strong>LlamaIndex</strong></td>
                     <td>RAG/文档 Agent 基础设施</td>
                     <td>中高</td>
@@ -441,6 +454,11 @@
                     <td>官方代码代理 SDK，默认就面向“可执行任务”场景，需强治理。</td>
                 </tr>
                 <tr>
+                    <td><strong>Nanoclaw</strong></td>
+                    <td>（继承 Claude Code/Agent SDK）<code>Bash</code>、文件读写/编辑工具链（容器内执行）</td>
+                    <td>把执行环境收敛到容器工作区，但默认范式仍为“代码生成 + 执行”，需审批与审计策略。</td>
+                </tr>
+                <tr>
                     <td><strong>LlamaIndex</strong></td>
                     <td><code>CodeInterpreterToolSpec</code>、<code>PandasQueryEngine</code>（NL 转 Python）</td>
                     <td>文档明确这类能力涉及执行风险，需沙盒化与权限收敛。</td>
@@ -479,6 +497,7 @@
         <li><code>CoPaw</code>：3.8k⭐，最新 release 2026-02-27。</li>
         <li><code>Semantic Kernel</code>：27.3k⭐，最新 release 2026-02-19。</li>
         <li><code>Claude Agent SDK</code>：Python 5.1k⭐（latest: 2026-02-26），TypeScript 873⭐（latest: 2026-02-28）。</li>
+        <li><code>Nanoclaw</code>：18.1k⭐，暂无 release（仓库活跃，233 commits）。</li>
         <li><code>LlamaIndex</code>：47.3k⭐，最新 release 2026-02-18。</li>
         <li><code>Haystack</code>：24.4k⭐，最新 release 2026-02-27。</li>
         <li><code>CrewAI</code>：44.9k⭐，最新 release 2026-02-27。</li>
@@ -528,7 +547,7 @@
 
     <h3>不建议作为企业生产主底座</h3>
     <ul>
-        <li>OpenClaw / Pi（除非仅在强隔离沙盒内做实验或内部 PoC）</li>
+        <li>OpenClaw / Pi / Nanoclaw（除非仅在强隔离沙盒内做实验或内部 PoC）</li>
         <li>Claude Agent SDK / OpenCode（同类代码执行型范式，需极高治理成本）</li>
     </ul>
 
@@ -546,6 +565,7 @@
     <h3>公开仓库/官方文档</h3>
     <ul>
         <li>OpenClaw: <a href="https://github.com/openclaw/openclaw" target="_blank">https://github.com/openclaw/openclaw</a></li>
+        <li>Nanoclaw: <a href="https://github.com/qwibitai/nanoclaw" target="_blank">https://github.com/qwibitai/nanoclaw</a></li>
         <li>Dify: <a href="https://github.com/langgenius/dify" target="_blank">https://github.com/langgenius/dify</a></li>
         <li>LangGraph: <a href="https://github.com/langchain-ai/langgraph" target="_blank">https://github.com/langchain-ai/langgraph</a></li>
         <li>LangChain: <a href="https://github.com/langchain-ai/langchain" target="_blank">https://github.com/langchain-ai/langchain</a></li>
